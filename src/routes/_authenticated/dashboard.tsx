@@ -105,7 +105,7 @@ function Dashboard() {
   function downloadCSV() {
     if (!result || !tableRows.length) return;
     const head =
-      "College,Branch,Category,Round 1 Cutoff,Round 2 Cutoff,Bucket,Confidence,Avg Package\n";
+      "College,Branch,Category,Round 1,Round 2,Round 3,Bucket,Probability,Avg Package\n";
     const rows = tableRows
       .map((r) =>
         [
@@ -114,6 +114,7 @@ function Dashboard() {
           r.category,
           r.round1_cutoff ?? "-",
           r.round2_cutoff ?? "-",
+          r.round3_cutoff ?? "-",
           r.bucket,
           r.confidence + "%",
           r.avgPackage,
@@ -177,17 +178,31 @@ function Dashboard() {
                 </label>
               </div>
               {!allBranches && (
-                <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto rounded-md border border-border p-3">
-                  {BRANCHES.map((b) => (
-                    <label key={b.label} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={selectedBranches.includes(b.label)}
-                        onCheckedChange={() => toggleBranch(b.label)}
-                      />
-                      {b.label}
-                    </label>
-                  ))}
-                </div>
+                <>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Tick branches in order of preference — the order you click them is the order
+                    the predictor will prioritise (1st pick first).
+                  </p>
+                  <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto rounded-md border border-border p-3">
+                    {BRANCHES.map((b) => {
+                      const idx = selectedBranches.indexOf(b.label);
+                      return (
+                        <label key={b.label} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={idx >= 0}
+                            onCheckedChange={() => toggleBranch(b.label)}
+                          />
+                          <span className="flex-1">{b.label}</span>
+                          {idx >= 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              #{idx + 1}
+                            </Badge>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
             <div>
