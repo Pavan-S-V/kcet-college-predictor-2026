@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Brain, Mic, GraduationCap, BarChart3, FileDown, ListChecks, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Brain,
+  Mic,
+  GraduationCap,
+  BarChart3,
+  FileDown,
+  ListChecks,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
 
@@ -7,21 +16,52 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Get Your Dream College and Course — KCET Predictor" },
-      { name: "description", content: "AI-powered KCET counseling platform. Predict colleges and branches using previous year cutoffs, seat matrix and category analysis." },
+      {
+        name: "description",
+        content:
+          "AI-powered KCET counseling platform. Predict colleges and branches using previous year cutoffs, seat matrix and category analysis.",
+      },
       { property: "og:title", content: "Get Your Dream College and Course" },
-      { property: "og:description", content: "AI-Powered KCET Counseling & College Prediction Platform." },
+      {
+        property: "og:description",
+        content: "AI-Powered KCET Counseling & College Prediction Platform.",
+      },
     ],
   }),
   component: Landing,
 });
 
 const FEATURES = [
-  { icon: GraduationCap, title: "KCET College Predictor", text: "See colleges where your rank fits — backed by Round 1 & Round 2 cutoff data." },
-  { icon: ListChecks, title: "Branch Predictor", text: "Pick your preferred branches and discover where you'll most likely get a seat." },
-  { icon: Brain, title: "AI Counselor", text: "Chat with an AI mentor trained on KCET counseling, eligibility and strategy." },
-  { icon: Mic, title: "Voice Assistant", text: "Ask questions hands-free — speak naturally and get spoken responses." },
-  { icon: BarChart3, title: "College Comparison", text: "Compare cutoffs, expected packages and confidence side-by-side." },
-  { icon: FileDown, title: "PDF Reports", text: "Download a personalized counseling shortlist for your family review." },
+  {
+    icon: GraduationCap,
+    title: "KCET College Predictor",
+    text: "See colleges where your rank fits — backed by Round 1 & Round 2 cutoff data.",
+  },
+  {
+    icon: ListChecks,
+    title: "Branch Predictor",
+    text: "Pick your preferred branches and discover where you'll most likely get a seat.",
+  },
+  {
+    icon: Brain,
+    title: "AI Counselor",
+    text: "Chat with an AI mentor trained on KCET counseling, eligibility and strategy.",
+  },
+  {
+    icon: Mic,
+    title: "Voice Assistant",
+    text: "Ask questions hands-free — speak naturally and get spoken responses.",
+  },
+  {
+    icon: BarChart3,
+    title: "College Comparison",
+    text: "Compare cutoffs, expected packages and confidence side-by-side.",
+  },
+  {
+    icon: FileDown,
+    title: "PDF Reports",
+    text: "Download a personalized counseling shortlist for your family review.",
+  },
 ];
 
 function Landing() {
@@ -39,7 +79,8 @@ function Landing() {
             <span className="text-emerald-200">and Course</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-white/85">
-            AI-Powered KCET Counseling & College Prediction Platform. Built for Karnataka engineering aspirants — turn your rank into a smart counseling plan in seconds.
+            AI-Powered KCET Counseling & College Prediction Platform. Built for Karnataka
+            engineering aspirants — turn your rank into a smart counseling plan in seconds.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to="/auth">
@@ -48,7 +89,11 @@ function Landing() {
               </Button>
             </Link>
             <Link to="/about">
-              <Button size="lg" variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white/40 bg-white/10 text-white hover:bg-white/20"
+              >
                 Meet the developer
               </Button>
             </Link>
@@ -81,7 +126,10 @@ function Landing() {
           {FEATURES.map((f) => {
             const Icon = f.icon;
             return (
-              <div key={f.title} className="group rounded-2xl border border-border bg-surface p-6 transition-all hover:shadow-elegant hover:-translate-y-0.5">
+              <div
+                key={f.title}
+                className="group rounded-2xl border border-border bg-surface p-6 transition-all hover:shadow-elegant hover:-translate-y-0.5"
+              >
                 <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -96,8 +144,14 @@ function Landing() {
       <section className="bg-surface border-t border-border">
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 text-center">
           <h2 className="text-3xl font-bold">Ready to find your dream college?</h2>
-          <p className="mt-3 text-muted-foreground">Create your account in 30 seconds and run your first prediction free.</p>
-          <Link to="/auth"><Button size="lg" className="mt-6">Get started free <ArrowRight className="ml-1 h-4 w-4" /></Button></Link>
+          <p className="mt-3 text-muted-foreground">
+            Create your account in 30 seconds and run your first prediction free.
+          </p>
+          <Link to="/auth">
+            <Button size="lg" className="mt-6">
+              Get started free <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </section>
 

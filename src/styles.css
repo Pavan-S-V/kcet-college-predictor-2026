@@ -56,17 +56,17 @@
   --primary: oklch(0.45 0.22 263);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.96 0.01 250);
-  --secondary-foreground: oklch(0.30 0.10 263);
+  --secondary-foreground: oklch(0.3 0.1 263);
   --muted: oklch(0.95 0.01 250);
   --muted-foreground: oklch(0.48 0.04 260);
   --accent: oklch(0.93 0.04 263);
-  --accent-foreground: oklch(0.30 0.10 263);
+  --accent-foreground: oklch(0.3 0.1 263);
   /* Emerald green accent */
   --emerald: oklch(0.68 0.16 160);
   --emerald-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.60 0.22 27);
+  --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.90 0.01 250);
+  --border: oklch(0.9 0.01 250);
   --input: oklch(0.92 0.01 250);
   --ring: oklch(0.55 0.18 263);
   --sidebar: oklch(0.99 0.005 250);
@@ -74,23 +74,40 @@
   --sidebar-primary: oklch(0.45 0.22 263);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.95 0.01 250);
-  --sidebar-accent-foreground: oklch(0.30 0.10 263);
-  --sidebar-border: oklch(0.90 0.01 250);
+  --sidebar-accent-foreground: oklch(0.3 0.1 263);
+  --sidebar-border: oklch(0.9 0.01 250);
   --sidebar-ring: oklch(0.55 0.18 263);
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
-  h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: -0.02em; }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
 .bg-hero-gradient {
-  background: linear-gradient(135deg, oklch(0.45 0.22 263) 0%, oklch(0.55 0.20 250) 50%, oklch(0.68 0.16 160) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.45 0.22 263) 0%,
+    oklch(0.55 0.2 250) 50%,
+    oklch(0.68 0.16 160) 100%
+  );
 }
 .text-gradient {
   background: linear-gradient(135deg, oklch(0.45 0.22 263), oklch(0.68 0.16 160));
@@ -98,4 +115,6 @@
   background-clip: text;
   color: transparent;
 }
-.shadow-elegant { box-shadow: 0 10px 30px -10px oklch(0.45 0.22 263 / 0.20); }
+.shadow-elegant {
+  box-shadow: 0 10px 30px -10px oklch(0.45 0.22 263 / 0.2);
+}

@@ -22,8 +22,8 @@ export interface PredictionResult {
 }
 
 function patternsFor(selected: string[]): string[] {
-  if (selected.includes("__all__")) return BRANCHES.map(b => b.pattern);
-  return BRANCHES.filter(b => selected.includes(b.label)).map(b => b.pattern);
+  if (selected.includes("__all__")) return BRANCHES.map((b) => b.pattern);
+  return BRANCHES.filter((b) => selected.includes(b.label)).map((b) => b.pattern);
 }
 
 // Rough package estimate based on cutoff rank (lower rank = better college = higher package)
@@ -60,7 +60,7 @@ export async function runPrediction(opts: {
 
   if (patterns.length && patterns.length < BRANCHES.length) {
     // Build OR for ILIKE patterns
-    const ors = patterns.map(p => `branch.ilike.%${p}%`).join(",");
+    const ors = patterns.map((p) => `branch.ilike.%${p}%`).join(",");
     query = query.or(ors);
   }
 
@@ -68,7 +68,7 @@ export async function runPrediction(opts: {
   if (error) throw error;
 
   // Group by college+branch
-  const map = new Map<string, { row: typeof data[number]; r1?: number; r2?: number }>();
+  const map = new Map<string, { row: (typeof data)[number]; r1?: number; r2?: number }>();
   for (const r of data ?? []) {
     const key = `${r.college_code}|${r.branch}`;
     const entry = map.get(key) ?? { row: r };
@@ -115,9 +115,9 @@ export async function runPrediction(opts: {
   rows.sort((a, b) => b.confidence - a.confidence || a.reference_cutoff - b.reference_cutoff);
 
   // Bucket the rows
-  const sureShot = rows.filter(r => r.bucket === "Sure-Shot");
-  const expected = rows.filter(r => r.bucket === "Expected");
-  const dream = rows.filter(r => r.bucket === "Dream");
+  const sureShot = rows.filter((r) => r.bucket === "Sure-Shot");
+  const expected = rows.filter((r) => r.bucket === "Expected");
+  const dream = rows.filter((r) => r.bucket === "Dream");
 
   // Number of recommendations scales with rank quality (higher rank = lower number = fewer recommendations)
   // Actually per spec: "Students with lower ranks should receive fewer recommendations.
@@ -134,7 +134,13 @@ export async function runPrediction(opts: {
   const sortByMode = (arr: PredictionRow[]) => {
     if (mode === "college") arr.sort((a, b) => collegeRank(a) - collegeRank(b));
     else if (mode === "branch") arr.sort((a, b) => b.confidence - a.confidence);
-    else arr.sort((a, b) => b.confidence * 0.6 + (100000 - collegeRank(a)) / 1000 - (b.confidence * 0.6 + (100000 - collegeRank(b)) / 1000));
+    else
+      arr.sort(
+        (a, b) =>
+          b.confidence * 0.6 +
+          (100000 - collegeRank(a)) / 1000 -
+          (b.confidence * 0.6 + (100000 - collegeRank(b)) / 1000),
+      );
     return arr;
   };
 

@@ -13,13 +13,27 @@ export function PublicNav() {
           <span className="font-semibold tracking-tight">KCET Dream College</span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground sm:flex">
-          <Link to="/" className="hover:text-foreground">Home</Link>
-          <Link to="/about" className="hover:text-foreground">About</Link>
-          <Link to="/auth" className="hover:text-foreground">Sign in</Link>
+          <Link to="/" className="hover:text-foreground">
+            Home
+          </Link>
+          <Link to="/about" className="hover:text-foreground">
+            About
+          </Link>
+          <Link to="/auth" className="hover:text-foreground">
+            Sign in
+          </Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/auth"><Button size="sm" variant="outline">Sign in</Button></Link>
-          <Link to="/auth"><Button size="sm" className="bg-primary hover:bg-primary/90">Get started</Button></Link>
+          <Link to="/auth">
+            <Button size="sm" variant="outline">
+              Sign in
+            </Button>
+          </Link>
+          <Link to="/auth">
+            <Button size="sm" className="bg-primary hover:bg-primary/90">
+              Get started
+            </Button>
+          </Link>
         </div>
       </div>
     </header>

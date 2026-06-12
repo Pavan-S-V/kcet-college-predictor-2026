@@ -1,6 +1,26 @@
 export const CATEGORIES = [
-  "GM","1G","1K","1R","2AG","2AK","2AR","2BG","2BK","2BR",
-  "3AG","3AK","3AR","3BG","3BK","3BR","SCG","SCK","SCR","STG","STK","STR",
+  "GM",
+  "1G",
+  "1K",
+  "1R",
+  "2AG",
+  "2AK",
+  "2AR",
+  "2BG",
+  "2BK",
+  "2BR",
+  "3AG",
+  "3AK",
+  "3AR",
+  "3BG",
+  "3BK",
+  "3BR",
+  "SCG",
+  "SCK",
+  "SCR",
+  "STG",
+  "STK",
+  "STR",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
@@ -9,7 +29,10 @@ export type Category = (typeof CATEGORIES)[number];
 export const BRANCHES = [
   { label: "Computer Science & Engineering", pattern: "COMPUTER SCIENCE" },
   { label: "Information Science & Engineering", pattern: "INFORMATION SCIENCE" },
-  { label: "Artificial Intelligence & Machine Learning", pattern: "ARTIFICIAL INTELLIGENCE AND MACHINE" },
+  {
+    label: "Artificial Intelligence & Machine Learning",
+    pattern: "ARTIFICIAL INTELLIGENCE AND MACHINE",
+  },
   { label: "Artificial Intelligence & Data Science", pattern: "ARTIFICIAL INTELLIGENCE AND DATA" },
   { label: "Electronics & Communication", pattern: "ELECTRONICS AND COMMUNICATION" },
   { label: "Electrical & Electronics", pattern: "ELECTRICAL" },
@@ -26,9 +49,21 @@ export const BRANCHES = [
 ] as const;
 
 export const PREDICTION_MODES = [
-  { id: "branch", label: "Dream Branch Priority", description: "Maximize chance of getting your preferred branch, even at lesser-known colleges." },
-  { id: "college", label: "Dream College Priority", description: "Aim for top colleges; branch flexible." },
-  { id: "balanced", label: "Balanced Recommendation", description: "A healthy mix of college reputation and branch fit." },
+  {
+    id: "branch",
+    label: "Dream Branch Priority",
+    description: "Maximize chance of getting your preferred branch, even at lesser-known colleges.",
+  },
+  {
+    id: "college",
+    label: "Dream College Priority",
+    description: "Aim for top colleges; branch flexible.",
+  },
+  {
+    id: "balanced",
+    label: "Balanced Recommendation",
+    description: "A healthy mix of college reputation and branch fit.",
+  },
 ] as const;
 
 export type PredictionMode = (typeof PREDICTION_MODES)[number]["id"];
