@@ -25,6 +25,16 @@ interface Msg {
   role: "user" | "assistant";
   content: string;
 }
+interface SpeechRecog {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
+  onend: () => void;
+  onerror: () => void;
+  start(): void;
+  stop(): void;
+}
 
 function ChatThread() {
   const { threadId } = Route.useParams();
