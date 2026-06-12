@@ -51,7 +51,7 @@ function Dashboard() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [search, setSearch] = useState("");
-  const [bucketFilter, setBucketFilter] = useState<"all" | "Sure-Shot" | "Expected" | "Dream">(
+  const [bucketFilter, setBucketFilter] = useState<"all" | "Sure-Shot" | "Expected" | "Top">(
     "all",
   );
 
@@ -105,7 +105,7 @@ function Dashboard() {
   function downloadCSV() {
     if (!result || !tableRows.length) return;
     const head =
-      "College,Branch,Category,Round 1 Cutoff,Round 2 Cutoff,Bucket,Confidence,Avg Package\n";
+      "College,Branch,Category,Round 1,Round 2,Round 3,Bucket,Probability,Avg Package\n";
     const rows = tableRows
       .map((r) =>
         [
@@ -114,6 +114,7 @@ function Dashboard() {
           r.category,
           r.round1_cutoff ?? "-",
           r.round2_cutoff ?? "-",
+          r.round3_cutoff ?? "-",
           r.bucket,
           r.confidence + "%",
           r.avgPackage,
@@ -177,17 +178,31 @@ function Dashboard() {
                 </label>
               </div>
               {!allBranches && (
-                <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto rounded-md border border-border p-3">
-                  {BRANCHES.map((b) => (
-                    <label key={b.label} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={selectedBranches.includes(b.label)}
-                        onCheckedChange={() => toggleBranch(b.label)}
-                      />
-                      {b.label}
-                    </label>
-                  ))}
-                </div>
+                <>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Tick branches in order of preference — the order you click them is the order
+                    the predictor will prioritise (1st pick first).
+                  </p>
+                  <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto rounded-md border border-border p-3">
+                    {BRANCHES.map((b) => {
+                      const idx = selectedBranches.indexOf(b.label);
+                      return (
+                        <label key={b.label} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={idx >= 0}
+                            onCheckedChange={() => toggleBranch(b.label)}
+                          />
+                          <span className="flex-1">{b.label}</span>
+                          {idx >= 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              #{idx + 1}
+                            </Badge>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
             <div>
@@ -234,20 +249,20 @@ function Dashboard() {
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-3">
                 <BucketCard
-                  icon={Rocket}
-                  title="Dream Colleges"
-                  count={result.dream.length}
-                  tone="dream"
+                  icon={Trophy}
+                  title="🏆 Top Colleges"
+                  count={result.top.length}
+                  tone="top"
                 />
                 <BucketCard
                   icon={Target}
-                  title="Expected Colleges"
+                  title="🎯 Expected Colleges"
                   count={result.expected.length}
                   tone="expected"
                 />
                 <BucketCard
-                  icon={Trophy}
-                  title="Sure-Shot Colleges"
+                  icon={Rocket}
+                  title="✅ Sure-Shot Colleges"
                   count={result.sureShot.length}
                   tone="sure"
                 />
@@ -270,9 +285,9 @@ function Dashboard() {
                   >
                     <TabsList>
                       <TabsTrigger value="all">All</TabsTrigger>
-                      <TabsTrigger value="Sure-Shot">Sure</TabsTrigger>
+                      <TabsTrigger value="Top">Top</TabsTrigger>
                       <TabsTrigger value="Expected">Expected</TabsTrigger>
-                      <TabsTrigger value="Dream">Dream</TabsTrigger>
+                      <TabsTrigger value="Sure-Shot">Sure</TabsTrigger>
                     </TabsList>
                   </Tabs>
                   <Button variant="outline" size="sm" onClick={downloadCSV}>
@@ -286,9 +301,9 @@ function Dashboard() {
                         <TableHead>College</TableHead>
                         <TableHead>Branch</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead className="text-right">Cutoff</TableHead>
+                        <TableHead className="text-right">Cutoffs (R1 / R2 / R3)</TableHead>
                         <TableHead>Avg Package</TableHead>
-                        <TableHead>Confidence</TableHead>
+                        <TableHead>Probability</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -298,7 +313,8 @@ function Dashboard() {
                             colSpan={6}
                             className="text-center text-sm text-muted-foreground py-10"
                           >
-                            No matching colleges.
+                            No matching colleges for this combination. Try widening branches or
+                            switching category.
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -325,14 +341,14 @@ function BucketCard({
   icon: typeof Trophy;
   title: string;
   count: number;
-  tone: "dream" | "expected" | "sure";
+  tone: "top" | "expected" | "sure";
 }) {
   const toneClass =
-    tone === "sure"
-      ? "bg-emerald/10 text-emerald border-emerald/30"
+    tone === "top"
+      ? "bg-accent border-accent text-accent-foreground"
       : tone === "expected"
         ? "bg-primary/10 text-primary border-primary/30"
-        : "bg-accent border-accent text-accent-foreground";
+        : "bg-emerald/10 text-emerald border-emerald/30";
   return (
     <div className={`rounded-2xl border bg-surface p-5`}>
       <div className={`inline-grid h-10 w-10 place-items-center rounded-lg ${toneClass}`}>
@@ -364,6 +380,7 @@ function ResultRow({ r }: { r: PredictionRow }) {
       <TableCell className="text-right text-sm tabular-nums">
         <div>R1: {r.round1_cutoff ?? "—"}</div>
         <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "—"}</div>
+        <div className="text-muted-foreground">R3: {r.round3_cutoff ?? "—"}</div>
       </TableCell>
       <TableCell className="text-sm">{r.avgPackage}</TableCell>
       <TableCell>
