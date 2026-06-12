@@ -14,7 +14,161 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_threads: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kcet_cutoffs: {
+        Row: {
+          branch: string
+          category: string
+          college_code: string
+          college_name: string
+          cutoff_rank: number
+          id: number
+          round: number
+        }
+        Insert: {
+          branch: string
+          category: string
+          college_code: string
+          college_name: string
+          cutoff_rank: number
+          id?: number
+          round: number
+        }
+        Update: {
+          branch?: string
+          category?: string
+          college_code?: string
+          college_name?: string
+          cutoff_rank?: number
+          id?: number
+          round?: number
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          branches: string[]
+          category: string
+          created_at: string
+          id: string
+          mode: string
+          rank: number
+          results: Json
+          user_id: string
+        }
+        Insert: {
+          branches: string[]
+          category: string
+          created_at?: string
+          id?: string
+          mode: string
+          rank: number
+          results?: Json
+          user_id: string
+        }
+        Update: {
+          branches?: string[]
+          category?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          rank?: number
+          results?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          category: string | null
+          college: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          kcet_rank: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          college?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          kcet_rank?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          college?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          kcet_rank?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
