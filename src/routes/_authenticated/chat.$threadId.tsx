@@ -102,7 +102,10 @@ function ChatThread() {
 
   function toggleMic() {
     if (typeof window === "undefined") return;
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecog; webkitSpeechRecognition?: new () => SpeechRecog };
+    const w = window as unknown as {
+      SpeechRecognition?: new () => SpeechRecog;
+      webkitSpeechRecognition?: new () => SpeechRecog;
+    };
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) return toast.error("Voice recognition not supported in this browser");
     if (listening && recogRef.current) {
