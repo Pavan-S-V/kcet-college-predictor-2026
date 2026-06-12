@@ -34,7 +34,7 @@ function ChatThread() {
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
-  const recogRef = useRef<any>(null);
+  const recogRef = useRef<unknown>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -92,17 +92,18 @@ function ChatThread() {
 
   function toggleMic() {
     if (typeof window === "undefined") return;
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecog; webkitSpeechRecognition?: new () => SpeechRecog };
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) return toast.error("Voice recognition not supported in this browser");
     if (listening && recogRef.current) {
-      recogRef.current.stop();
+      (recogRef.current as SpeechRecog).stop();
       return;
     }
     const r = new SR();
     r.lang = "en-IN";
     r.continuous = false;
     r.interimResults = false;
-    r.onresult = (e: any) => {
+    r.onresult = (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => {
       setInput((prev) => (prev ? prev + " " : "") + e.results[0][0].transcript);
     };
     r.onend = () => setListening(false);
