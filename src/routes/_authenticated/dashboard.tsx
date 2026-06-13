@@ -1,43 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  CATEGORIES,
-  BRANCHES,
-  PREDICTION_MODES,
-  type Category,
-  type PredictionMode,
+  CATEGORIES, BRANCHES, PREDICTION_MODES, DISTRICTS,
+  type Category, type PredictionMode,
 } from "@/lib/kcet-constants";
-import { runPrediction, type PredictionResult, type PredictionRow } from "@/lib/predictor";
+import { runPrediction, downloadPredictionPdf, type PredictionResult, type PredictionRow } from "@/lib/predictor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Sparkles, Target, Trophy, Rocket, Download } from "lucide-react";
+import { Loader2, Search, Sparkles, Target, Trophy, Rocket, FileDown, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — KCET Predictor" }] }),
+  head: () => ({ meta: [{ title: "Predict College — KCET" }] }),
   component: Dashboard,
 });
+
+const STEPS = [
+  "Analyzing KCET Cutoffs...",
+  "Checking Seat Matrix...",
+  "Evaluating Admission Chances...",
+  "Generating Recommendations...",
+];
 
 function Dashboard() {
   const { user } = useAuth();
@@ -48,18 +42,38 @@ function Dashboard() {
   const [mode, setMode] = useState<PredictionMode>("balanced");
   const [allBranches, setAllBranches] = useState(false);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [district, setDistrict] = useState<string>("");
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState(0);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [search, setSearch] = useState("");
-  const [bucketFilter, setBucketFilter] = useState<"all" | "Sure-Shot" | "Expected" | "Top">(
-    "all",
-  );
+  const [bucketFilter, setBucketFilter] = useState<"all" | "Sure-Shot" | "Expected" | "Top">("all");
 
   function toggleBranch(label: string) {
     setSelectedBranches((prev) =>
       prev.includes(label) ? prev.filter((x) => x !== label) : [...prev, label],
     );
   }
+
+  // Animated progress while predicting
+  useEffect(() => {
+    if (!running) return;
+    setProgress(0);
+    setStep(0);
+    const totalMs = 16000;
+    const tickMs = 200;
+    const inc = (tickMs / totalMs) * 100;
+    const id = setInterval(() => {
+      setProgress((p) => {
+        const next = Math.min(99, p + inc);
+        const s = next >= 75 ? 3 : next >= 50 ? 2 : next >= 25 ? 1 : 0;
+        setStep(s);
+        return next;
+      });
+    }, tickMs);
+    return () => clearInterval(id);
+  }, [running]);
 
   async function predict() {
     const r = Number(rank);
@@ -68,19 +82,23 @@ function Dashboard() {
     if (!allBranches && !branches.length)
       return toast.error("Pick at least one branch (or choose All branches)");
     setRunning(true);
+    const started = Date.now();
     try {
-      const res = await runPrediction({ rank: r, category, branches, mode });
+      const [res] = await Promise.all([
+        runPrediction({ rank: r, category, branches, mode, district }),
+        new Promise((rs) => setTimeout(rs, 15000)), // min 15s for the animation feel
+      ]);
+      const elapsed = Date.now() - started;
+      if (elapsed < 16000) await new Promise((rs) => setTimeout(rs, 16000 - elapsed));
+      setProgress(100);
+      setStep(3);
+      await new Promise((rs) => setTimeout(rs, 400));
       setResult(res);
-      if (!res.all.length) toast.warning("No matches — try expanding branches or category.");
+      if (!res.all.length) toast.warning("No matches — try widening branches, category or district.");
       else toast.success(`Found ${res.all.length} possible options`);
-      // persist
       if (user) {
         await supabase.from("predictions").insert({
-          user_id: user.id,
-          rank: r,
-          category,
-          mode,
-          branches,
+          user_id: user.id, rank: r, category, mode, branches,
           results: res.all.slice(0, 50) as never,
         });
       }
@@ -93,8 +111,7 @@ function Dashboard() {
 
   const tableRows = useMemo(() => {
     if (!result) return [];
-    const base =
-      bucketFilter === "all" ? result.all : result.all.filter((r) => r.bucket === bucketFilter);
+    const base = bucketFilter === "all" ? result.all : result.all.filter((r) => r.bucket === bucketFilter);
     if (!search.trim()) return base;
     const q = search.toLowerCase();
     return base.filter(
@@ -102,34 +119,15 @@ function Dashboard() {
     );
   }, [result, bucketFilter, search]);
 
-  function downloadCSV() {
+  function pdf() {
     if (!result || !tableRows.length) return;
-    const head =
-      "College,Branch,Category,Round 1,Round 2,Round 3,Bucket,Probability,Avg Package\n";
-    const rows = tableRows
-      .map((r) =>
-        [
-          r.college_name,
-          r.branch,
-          r.category,
-          r.round1_cutoff ?? "-",
-          r.round2_cutoff ?? "-",
-          r.round3_cutoff ?? "-",
-          r.bucket,
-          r.confidence + "%",
-          r.avgPackage,
-        ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(","),
-      )
-      .join("\n");
-    const blob = new Blob([head + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `kcet-prediction-rank-${rank}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadPredictionPdf(result, {
+      studentName: name,
+      rank: Number(rank),
+      category,
+      branches: allBranches ? ["All branches"] : selectedBranches,
+      district,
+    });
   }
 
   return (
@@ -140,32 +138,30 @@ function Dashboard() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
-        {/* Input panel */}
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="text-lg font-semibold">Prediction inputs</h2>
           <div className="mt-4 space-y-4">
             <div>
               <Label htmlFor="rank">KCET Rank</Label>
-              <Input
-                id="rank"
-                inputMode="numeric"
-                placeholder="e.g. 15000"
-                value={rank}
-                onChange={(e) => setRank(e.target.value.replace(/\D/g, ""))}
-              />
+              <Input id="rank" inputMode="numeric" placeholder="e.g. 15000" value={rank}
+                onChange={(e) => setRank(e.target.value.replace(/\D/g, ""))} />
             </div>
             <div>
               <Label>Category</Label>
               <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
+                  {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>District preference</Label>
+              <Select value={district || "__all__"} onValueChange={(v) => setDistrict(v === "__all__" ? "" : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Karnataka</SelectItem>
+                  {DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -188,16 +184,9 @@ function Dashboard() {
                       const idx = selectedBranches.indexOf(b.label);
                       return (
                         <label key={b.label} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={idx >= 0}
-                            onCheckedChange={() => toggleBranch(b.label)}
-                          />
+                          <Checkbox checked={idx >= 0} onCheckedChange={() => toggleBranch(b.label)} />
                           <span className="flex-1">{b.label}</span>
-                          {idx >= 0 && (
-                            <Badge variant="outline" className="text-[10px]">
-                              #{idx + 1}
-                            </Badge>
-                          )}
+                          {idx >= 0 && <Badge variant="outline" className="text-[10px]">#{idx + 1}</Badge>}
                         </label>
                       );
                     })}
@@ -209,12 +198,8 @@ function Dashboard() {
               <Label>Prediction mode</Label>
               <div className="mt-2 grid gap-2">
                 {PREDICTION_MODES.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setMode(m.id)}
-                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
-                  >
+                  <button key={m.id} type="button" onClick={() => setMode(m.id)}
+                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
                     <div className="font-medium">{m.label}</div>
                     <div className="text-xs text-muted-foreground">{m.description}</div>
                   </button>
@@ -222,67 +207,56 @@ function Dashboard() {
               </div>
             </div>
             <Button onClick={predict} disabled={running} className="w-full">
-              {running ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Predicting...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" /> Predict colleges
-                </>
-              )}
+              {running ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Predicting...</>
+                : <><Sparkles className="h-4 w-4 mr-2" /> Predict colleges</>}
             </Button>
           </div>
         </div>
 
-        {/* Results panel */}
         <div>
-          {!result ? (
+          {running ? (
+            <div className="rounded-2xl border border-border bg-surface p-10">
+              <div className="mx-auto max-w-md text-center">
+                <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+                <h3 className="mt-4 text-lg font-semibold">{STEPS[step]}</h3>
+                <Progress value={progress} className="mt-5" />
+                <div className="mt-2 text-sm text-muted-foreground">{Math.round(progress)}%</div>
+                <ol className="mt-6 space-y-1.5 text-left text-sm">
+                  {STEPS.map((s, i) => (
+                    <li key={s} className={`flex items-center gap-2 ${i <= step ? "text-foreground" : "text-muted-foreground"}`}>
+                      <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] ${i < step ? "bg-emerald text-emerald-foreground" : i === step ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                        {i < step ? "✓" : i + 1}
+                      </span>
+                      {s}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          ) : !result ? (
             <div className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
               <Trophy className="mx-auto h-10 w-10 text-primary/70" />
               <h3 className="mt-3 text-lg font-semibold">Your predictions appear here</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Fill in your rank, category and branches to get started.
+                Fill in your rank, category, district and branches to get started.
               </p>
             </div>
           ) : (
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-3">
-                <BucketCard
-                  icon={Trophy}
-                  title="🏆 Top Colleges"
-                  count={result.top.length}
-                  tone="top"
-                />
-                <BucketCard
-                  icon={Target}
-                  title="🎯 Expected Colleges"
-                  count={result.expected.length}
-                  tone="expected"
-                />
-                <BucketCard
-                  icon={Rocket}
-                  title="✅ Sure-Shot Colleges"
-                  count={result.sureShot.length}
-                  tone="sure"
-                />
+                <BucketCard icon={Trophy} title="🏆 Top Colleges" count={result.top.length} tone="top" />
+                <BucketCard icon={Target} title="🎯 Expected Colleges" count={result.expected.length} tone="expected" />
+                <BucketCard icon={Rocket} title="✅ Sure-Shot Colleges" count={result.sureShot.length} tone="sure" />
               </div>
 
               <div className="rounded-2xl border border-border bg-surface">
                 <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
                   <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-8"
-                      placeholder="Search college or branch..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
+                    <Input className="pl-8" placeholder="Search college or branch..."
+                      value={search} onChange={(e) => setSearch(e.target.value)} />
                   </div>
-                  <Tabs
-                    value={bucketFilter}
-                    onValueChange={(v) => setBucketFilter(v as typeof bucketFilter)}
-                  >
+                  <Tabs value={bucketFilter} onValueChange={(v) => setBucketFilter(v as typeof bucketFilter)}>
                     <TabsList>
                       <TabsTrigger value="all">All</TabsTrigger>
                       <TabsTrigger value="Top">Top</TabsTrigger>
@@ -290,8 +264,8 @@ function Dashboard() {
                       <TabsTrigger value="Sure-Shot">Sure</TabsTrigger>
                     </TabsList>
                   </Tabs>
-                  <Button variant="outline" size="sm" onClick={downloadCSV}>
-                    <Download className="h-4 w-4 mr-1" /> CSV
+                  <Button variant="default" size="sm" onClick={pdf}>
+                    <FileDown className="h-4 w-4 mr-1" /> Download PDF Report
                   </Button>
                 </div>
                 <div className="overflow-x-auto">
@@ -301,20 +275,15 @@ function Dashboard() {
                         <TableHead>College</TableHead>
                         <TableHead>Branch</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead className="text-right">Cutoffs (R1 / R2 / R3)</TableHead>
-                        <TableHead>Avg Package</TableHead>
+                        <TableHead className="text-right">R1 / R2</TableHead>
                         <TableHead>Probability</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {tableRows.length === 0 ? (
                         <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="text-center text-sm text-muted-foreground py-10"
-                          >
-                            No matching colleges for this combination. Try widening branches or
-                            switching category.
+                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
+                            No matching colleges. Try widening branches, category or district.
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -332,25 +301,15 @@ function Dashboard() {
   );
 }
 
-function BucketCard({
-  icon: Icon,
-  title,
-  count,
-  tone,
-}: {
-  icon: typeof Trophy;
-  title: string;
-  count: number;
-  tone: "top" | "expected" | "sure";
+function BucketCard({ icon: Icon, title, count, tone }: {
+  icon: typeof Trophy; title: string; count: number; tone: "top" | "expected" | "sure";
 }) {
   const toneClass =
-    tone === "top"
-      ? "bg-accent border-accent text-accent-foreground"
-      : tone === "expected"
-        ? "bg-primary/10 text-primary border-primary/30"
+    tone === "top" ? "bg-accent border-accent text-accent-foreground"
+      : tone === "expected" ? "bg-primary/10 text-primary border-primary/30"
         : "bg-emerald/10 text-emerald border-emerald/30";
   return (
-    <div className={`rounded-2xl border bg-surface p-5`}>
+    <div className="rounded-2xl border bg-surface p-5">
       <div className={`inline-grid h-10 w-10 place-items-center rounded-lg ${toneClass}`}>
         <Icon className="h-5 w-5" />
       </div>
@@ -361,33 +320,25 @@ function BucketCard({
 }
 
 function ResultRow({ r }: { r: PredictionRow }) {
-  const tone =
-    r.bucket === "Sure-Shot"
-      ? "bg-emerald text-emerald-foreground"
-      : r.bucket === "Expected"
-        ? "bg-primary text-primary-foreground"
-        : "bg-accent text-accent-foreground";
+  const tone = r.bucket === "Sure-Shot" ? "bg-emerald text-emerald-foreground"
+    : r.bucket === "Expected" ? "bg-primary text-primary-foreground"
+      : "bg-accent text-accent-foreground";
   return (
     <TableRow>
       <TableCell className="font-medium">
         <div className="line-clamp-2">{r.college_name}</div>
-        <div className="text-xs text-muted-foreground">{r.college_code}</div>
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          {r.college_code}
+          {r.district && <><span>·</span><MapPin className="h-3 w-3" />{r.district}</>}
+        </div>
       </TableCell>
       <TableCell className="text-sm">{r.branch}</TableCell>
-      <TableCell>
-        <Badge variant="outline">{r.category}</Badge>
-      </TableCell>
+      <TableCell><Badge variant="outline">{r.category}</Badge></TableCell>
       <TableCell className="text-right text-sm tabular-nums">
         <div>R1: {r.round1_cutoff ?? "—"}</div>
         <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "—"}</div>
-        <div className="text-muted-foreground">R3: {r.round3_cutoff ?? "—"}</div>
       </TableCell>
-      <TableCell className="text-sm">{r.avgPackage}</TableCell>
-      <TableCell>
-        <Badge className={tone}>
-          {r.bucket} · {r.confidence}%
-        </Badge>
-      </TableCell>
+      <TableCell><Badge className={tone}>{r.bucket} · {r.confidence}%</Badge></TableCell>
     </TableRow>
   );
 }

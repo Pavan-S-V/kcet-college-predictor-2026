@@ -1,6 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -38,7 +39,8 @@ interface SpeechRecog {
 
 function ChatThread() {
   const { threadId } = Route.useParams();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -148,14 +150,22 @@ function ChatThread() {
       >
         {messages.length === 0 && !sending && (
           <div className="grid h-full place-items-center text-center">
-            <div>
+            <div className="max-w-md">
               <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground">
                 <GraduationCap className="h-6 w-6" />
               </div>
-              <h2 className="mt-3 text-lg font-semibold">Ask your KCET counselor</h2>
+              <h2 className="mt-3 text-xl font-semibold">Hi, {userName}! 👋</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                e.g. "What documents do I need for round 1?"
+                I'm your KCET AI Counseling Assistant. How can I help you today?
               </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs">
+                {["What documents do I need for round 1?", "Compare CSE vs ISE", "Best colleges in Mysuru"].map((q) => (
+                  <button key={q} onClick={() => setInput(q)}
+                    className="rounded-full border border-border px-3 py-1 hover:bg-muted">
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
