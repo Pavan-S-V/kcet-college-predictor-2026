@@ -46,9 +46,13 @@ export async function runPrediction(opts: {
   category: Category;
   branches: string[];
   mode: PredictionMode;
-  district?: string; // "" = All Karnataka
+  district?: string; // legacy single
+  districts?: string[]; // [] or undefined = All Karnataka
 }): Promise<PredictionResult> {
-  const { rank, category, mode, district = "" } = opts;
+  const { rank, category, mode } = opts;
+  const districtSet = new Set(
+    (opts.districts && opts.districts.length ? opts.districts : opts.district ? [opts.district] : []).filter(Boolean),
+  );
   const isCollegeMode = mode === "college";
   const orderedBranches = isCollegeMode ? patternsFor(["__all__"]) : patternsFor(opts.branches);
   const branchPriority = new Map<string, number>();
@@ -113,7 +117,7 @@ export async function runPrediction(opts: {
     if (!cutoffs.length) continue;
 
     const dist = districtFor(g.college_name);
-    if (district && dist !== district) continue;
+    if (districtSet.size && !districtSet.has(dist)) continue;
 
     // weighted reference R1 50 / R2 50
     const w1 = g.r1 != null ? 0.5 : 0;
@@ -200,7 +204,7 @@ export interface PdfMeta {
   rank: number;
   category: string;
   branches: string[];
-  district: string;
+  district: string; // free-text summary line
 }
 
 export async function downloadPredictionPdf(result: PredictionResult, meta: PdfMeta) {
@@ -222,7 +226,7 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
     `Student Name: ${meta.studentName}`,
     `KCET Rank: ${meta.rank}`,
     `Category: ${meta.category}`,
-    `District: ${meta.district || "All Karnataka"}`,
+    `Districts: ${meta.district || "All Karnataka"}`,
     `Branches: ${meta.branches.length ? meta.branches.join(", ") : "All"}`,
     `Generated: ${now}`,
   ];

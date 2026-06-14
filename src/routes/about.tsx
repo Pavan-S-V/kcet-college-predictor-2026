@@ -4,7 +4,7 @@ import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
 import pavanPhoto from "@/assets/pavan.jpeg.asset.json";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({ meta: [{ title: "About the Developer — KCET Dream College" }] }),
+  head: () => ({ meta: [{ title: "About the Developer — KCET Counselling 2026" }] }),
   component: About,
 });
 

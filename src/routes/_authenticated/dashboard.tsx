@@ -14,12 +14,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Sparkles, Target, Trophy, Rocket, FileDown, MapPin } from "lucide-react";
+import { Loader2, Search, Sparkles, Target, Trophy, Rocket, FileDown, MapPin, ChevronsUpDown, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Predict College — KCET" }] }),
@@ -42,7 +43,8 @@ function Dashboard() {
   const [mode, setMode] = useState<PredictionMode>("balanced");
   const [allBranches, setAllBranches] = useState(false);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-  const [district, setDistrict] = useState<string>("");
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [districtQuery, setDistrictQuery] = useState("");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState(0);
@@ -85,7 +87,7 @@ function Dashboard() {
     const started = Date.now();
     try {
       const [res] = await Promise.all([
-        runPrediction({ rank: r, category, branches, mode, district }),
+        runPrediction({ rank: r, category, branches, mode, districts }),
         new Promise((rs) => setTimeout(rs, 15000)), // min 15s for the animation feel
       ]);
       const elapsed = Date.now() - started;
@@ -126,8 +128,15 @@ function Dashboard() {
       rank: Number(rank),
       category,
       branches: allBranches ? ["All branches"] : selectedBranches,
-      district,
+      district: districts.length ? districts.join(", ") : "",
     });
+  }
+
+  const districtMatches = DISTRICTS.filter((d) =>
+    !districtQuery.trim() ? true : d.toLowerCase().includes(districtQuery.toLowerCase()),
+  );
+  function toggleDistrict(d: string) {
+    setDistricts((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
   }
 
   return (
@@ -156,14 +165,73 @@ function Dashboard() {
               </Select>
             </div>
             <div>
-              <Label>District preference</Label>
-              <Select value={district || "__all__"} onValueChange={(v) => setDistrict(v === "__all__" ? "" : v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All Karnataka</SelectItem>
-                  {DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Districts (pick any number)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" type="button" className="mt-1 w-full justify-between font-normal">
+                    <span className="truncate">
+                      {districts.length === 0
+                        ? "All Karnataka"
+                        : districts.length <= 2
+                          ? districts.join(", ")
+                          : `${districts.length} districts selected`}
+                    </span>
+                    <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <div className="border-b border-border p-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        placeholder="Search district..."
+                        value={districtQuery}
+                        onChange={(e) => setDistrictQuery(e.target.value)}
+                        className="h-8 pl-7"
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                      <button type="button" className="text-primary hover:underline"
+                        onClick={() => setDistricts([])}>
+                        Clear (All Karnataka)
+                      </button>
+                      <button type="button" className="text-primary hover:underline"
+                        onClick={() => setDistricts([...DISTRICTS])}>
+                        Select all
+                      </button>
+                    </div>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto p-1">
+                    {districtMatches.map((d) => {
+                      const checked = districts.includes(d);
+                      return (
+                        <label key={d}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                          <Checkbox checked={checked} onCheckedChange={() => toggleDistrict(d)} />
+                          <span className="flex-1">{d}</span>
+                        </label>
+                      );
+                    })}
+                    {!districtMatches.length && (
+                      <div className="px-2 py-3 text-center text-xs text-muted-foreground">No matches</div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {districts.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {districts.map((d) => (
+                    <Badge key={d} variant="secondary" className="gap-1 pr-1">
+                      {d}
+                      <button type="button" onClick={() => toggleDistrict(d)}
+                        className="rounded hover:bg-background/50">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <div className="flex items-center justify-between">

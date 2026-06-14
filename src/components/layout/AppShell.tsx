@@ -32,7 +32,7 @@ export function AppShell() {
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </span>
-            <span className="font-semibold tracking-tight">KCET Dream College</span>
+            <span className="font-semibold tracking-tight">KCET Counselling 2026</span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             <Link
