@@ -49,25 +49,38 @@ function CollegeChances() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<BranchRow[] | null>(null);
 
-  // Load distinct college list (code+name)
+  // Load distinct college list (code+name) across the full cutoff table via pagination
   useEffect(() => {
-    supabase.from("kcet_cutoffs").select("college_code,college_name").limit(10000)
-      .then(({ data, error }) => {
-        if (error) return toast.error(error.message);
-        const seen = new Map<string, College>();
-        for (const r of data ?? []) {
+    let cancelled = false;
+    (async () => {
+      const seen = new Map<string, College>();
+      const pageSize = 1000;
+      for (let from = 0; from < 60000; from += pageSize) {
+        const { data, error } = await supabase
+          .from("kcet_cutoffs")
+          .select("college_code,college_name")
+          .order("college_code", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) { toast.error(error.message); break; }
+        if (!data || !data.length) break;
+        for (const r of data) {
           if (!seen.has(r.college_code)) seen.set(r.college_code, { code: r.college_code, name: r.college_name });
         }
+        if (data.length < pageSize) break;
+      }
+      if (!cancelled) {
         setColleges(Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name)));
-      });
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return colleges.slice(0, 15);
+    if (!q) return colleges.slice(0, 50);
     return colleges
       .filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
-      .slice(0, 20);
+      .slice(0, 50);
   }, [colleges, query]);
 
   async function check() {
