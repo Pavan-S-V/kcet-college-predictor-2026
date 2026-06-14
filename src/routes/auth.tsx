@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — KCET Dream College" }] }),
+  head: () => ({ meta: [{ title: "Sign in — KCET Counselling 2026" }] }),
   component: AuthPage,
 });
 
@@ -21,11 +21,6 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-
-  // Phone OTP state
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -48,8 +43,12 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin + "/dashboard" },
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: window.location.origin + "/dashboard",
+      },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -62,28 +61,6 @@ function AuthPage() {
     });
     if (result.error) return toast.error(result.error.message ?? "Google sign-in failed");
     if (result.redirected) return;
-    navigate({ to: "/dashboard", replace: true });
-  }
-
-  async function sendOtp(e: React.FormEvent) {
-    e.preventDefault();
-    const p = phone.trim();
-    if (!/^\+\d{10,15}$/.test(p)) return toast.error("Enter phone in international format, e.g. +919876543210");
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({ phone: p });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("OTP sent. Check your SMS.");
-    setOtpSent(true);
-  }
-
-  async function verifyOtp(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({ phone: phone.trim(), token: otp.trim(), type: "sms" });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Signed in!");
     navigate({ to: "/dashboard", replace: true });
   }
 
@@ -103,7 +80,7 @@ function AuthPage() {
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/20 backdrop-blur">
               <GraduationCap className="h-5 w-5" />
             </span>
-            <span className="font-semibold">KCET Dream College</span>
+            <span className="font-semibold">KCET Counselling 2026</span>
           </Link>
         </div>
       </div>
@@ -111,7 +88,9 @@ function AuthPage() {
       <div className="mx-auto -mt-12 max-w-md px-4 pb-16">
         <div className="rounded-2xl border border-border bg-surface p-6 shadow-elegant sm:p-8">
           <h1 className="text-2xl font-bold">Welcome, future engineer</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to start predicting your KCET colleges.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sign in to start predicting your KCET colleges.
+          </p>
 
           <Button variant="outline" className="mt-6 w-full" onClick={google}>
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -127,43 +106,11 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Tabs defaultValue="phone">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="phone">Mobile OTP</TabsTrigger>
-              <TabsTrigger value="login">Email</TabsTrigger>
+          <Tabs defaultValue="login">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Sign in</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
-
-            <TabsContent value="phone">
-              {!otpSent ? (
-                <form onSubmit={sendOtp} className="space-y-4 pt-4">
-                  <div>
-                    <Label htmlFor="ph">Mobile number</Label>
-                    <Input id="ph" type="tel" required placeholder="+919876543210"
-                      value={phone} onChange={(e) => setPhone(e.target.value)} />
-                    <p className="mt-1 text-xs text-muted-foreground">Include country code (e.g. +91 for India).</p>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Sending..." : "Send OTP"}
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={verifyOtp} className="space-y-4 pt-4">
-                  <div>
-                    <Label htmlFor="otp">Enter OTP sent to {phone}</Label>
-                    <Input id="otp" inputMode="numeric" required value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Verifying..." : "Verify & sign in"}
-                  </Button>
-                  <button type="button" className="text-xs text-muted-foreground hover:underline"
-                    onClick={() => { setOtpSent(false); setOtp(""); }}>
-                    Change number
-                  </button>
-                </form>
-              )}
-            </TabsContent>
 
             <TabsContent value="login">
               <form onSubmit={login} className="space-y-4 pt-4">
