@@ -92,7 +92,7 @@ export async function runPrediction(opts: {
     r2?: number;
   };
   const map = new Map<string, Group>();
-  const ingest = (rows: typeof data) => {
+  const ingest = (rows: typeof data | null | undefined) => {
     for (const r of rows ?? []) {
       const key = `${r.college_code}|${r.branch}`;
       const g = map.get(key) ?? ({
