@@ -122,8 +122,8 @@ function CollegeChances() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="rounded-2xl bg-hero-gradient p-6 text-white shadow-elegant sm:p-8">
-        <h1 className="text-2xl font-bold sm:text-3xl">College Chances 🎯</h1>
-        <p className="mt-1 text-white/85">Pick a college, see your admission probability for every branch.</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">College & Branch Chances 🎯</h1>
+        <p className="mt-1 text-white/85">Pick any Karnataka engineering college, see your admission probability for every branch.</p>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
