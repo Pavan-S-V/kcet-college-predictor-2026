@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Mail, GraduationCap, MapPin } from "lucide-react";
+import { Mail, GraduationCap, MapPin, Instagram } from "lucide-react";
 import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
 import pavanPhoto from "@/assets/pavan.jpeg.asset.json";
 
@@ -32,12 +32,8 @@ function About() {
       <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
         <div className="rounded-2xl border border-border bg-surface p-8 shadow-elegant">
           <p className="text-lg leading-relaxed text-foreground">
-            I built this platform to help KCET students make informed counseling decisions — the
-            kind of clarity I wished I had when I was choosing my engineering college.
-          </p>
-          <p className="mt-4 leading-relaxed text-muted-foreground">
-            By combining previous-year cutoffs, seat matrix data and AI guidance, this tool helps
-            you spot top picks, expected matches and sure-shot fallbacks — instantly.
+            Helping KCET aspirants discover the right college, branch, and career path through
+            accurate, data-driven counseling insights.
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -54,8 +50,25 @@ function About() {
               <div className="flex items-center gap-2 text-sm font-medium text-primary">
                 <Mail className="h-4 w-4" /> Contact
               </div>
-              <a href="mailto:pavansv122@gmail.com" className="mt-1 block font-semibold hover:underline">
+              <a
+                href="mailto:pavansv122@gmail.com"
+                className="mt-1 block font-semibold cursor-pointer hover:text-primary hover:underline transition-colors"
+              >
                 pavansv122@gmail.com
+              </a>
+            </div>
+            <div className="rounded-xl border border-border p-4 sm:col-span-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <Instagram className="h-4 w-4" /> Instagram
+              </div>
+              <a
+                href="https://www.instagram.com/pavan_aradhya___/?hl=en"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex items-center gap-2 font-semibold cursor-pointer hover:text-primary hover:underline transition-colors"
+              >
+                <Instagram className="h-4 w-4" />
+                @pavan_aradhya___
               </a>
             </div>
           </div>
