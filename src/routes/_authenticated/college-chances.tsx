@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2, MapPin, School, Target } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/college-chances")({
-  head: () => ({ meta: [{ title: "College Chances — KCET" }] }),
+  head: () => ({ meta: [{ title: "College & Branch Chances — KCET" }] }),
   component: CollegeChances,
 });
 
