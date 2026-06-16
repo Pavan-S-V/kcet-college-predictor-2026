@@ -89,13 +89,13 @@ function Dashboard() {
     try {
       const [res] = await Promise.all([
         runPrediction({ rank: r, category, branches, mode, districts }),
-        new Promise((rs) => setTimeout(rs, 15000)), // min 15s for the animation feel
+        new Promise((rs) => setTimeout(rs, 5000)),
       ]);
       const elapsed = Date.now() - started;
-      if (elapsed < 16000) await new Promise((rs) => setTimeout(rs, 16000 - elapsed));
+      if (elapsed < 5400) await new Promise((rs) => setTimeout(rs, 5400 - elapsed));
       setProgress(100);
-      setStep(3);
-      await new Promise((rs) => setTimeout(rs, 400));
+      setStep(STEPS.length - 1);
+      await new Promise((rs) => setTimeout(rs, 300));
       setResult(res);
       if (!res.all.length) toast.warning("No matches — try widening branches, category or district.");
       else toast.success(`Found ${res.all.length} possible options`);
