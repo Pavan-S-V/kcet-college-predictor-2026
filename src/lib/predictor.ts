@@ -249,7 +249,6 @@ export async function runPrediction(opts: {
   if (!rows.length) {
     const fallback = await fetchRows(null, true);
     const fmap = new Map<string, Group>();
-    ingest.call(null, fallback);
     for (const r of fallback) {
       const v = Number(r.cutoff_rank);
       if (!Number.isFinite(v) || v <= 0) continue;
