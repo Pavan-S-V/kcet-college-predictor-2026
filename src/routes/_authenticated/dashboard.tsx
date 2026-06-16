@@ -28,7 +28,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 const STEPS = [
-  "Analyzing KCET Cutoffs...",
+  "Analyzing Round 1 Cutoffs...",
+  "Analyzing Round 2 Cutoffs...",
   "Checking Seat Matrix...",
   "Evaluating Admission Chances...",
   "Generating Recommendations...",
