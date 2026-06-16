@@ -129,7 +129,7 @@ function Dashboard() {
       rank: Number(rank),
       category,
       branches: allBranches ? ["All branches"] : selectedBranches,
-      district: districts.length ? districts.join(", ") : "",
+      districts,
     });
   }
 
