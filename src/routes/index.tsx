@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   ArrowRight,
   Brain,
@@ -11,11 +11,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
+  ssr: false,
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+    const { data } = await supabase.auth.getSession();
+    if (data.session) throw redirect({ to: "/dashboard" });
+  },
   head: () => ({
     meta: [
-      { title: "Get Your Dream College and Course — KCET Predictor" },
+      { title: "Get Your Dream College and Course — KCET Counselling 2026" },
       {
         name: "description",
         content:
