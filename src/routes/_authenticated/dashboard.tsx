@@ -404,8 +404,8 @@ function ResultRow({ r }: { r: PredictionRow }) {
       <TableCell className="text-sm">{r.branch}</TableCell>
       <TableCell><Badge variant="outline">{r.category}</Badge></TableCell>
       <TableCell className="text-right text-sm tabular-nums">
-        <div>R1: {r.round1_cutoff ?? "—"}</div>
-        <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "—"}</div>
+        <div>R1: {r.round1_cutoff ?? "Not Available"}</div>
+        <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "Not Available"}</div>
       </TableCell>
       <TableCell><Badge className={tone}>{r.bucket} · {r.confidence}%</Badge></TableCell>
     </TableRow>
