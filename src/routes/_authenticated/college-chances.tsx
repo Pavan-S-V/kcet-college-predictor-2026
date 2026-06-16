@@ -195,7 +195,7 @@ function CollegeChances() {
                     <div className="flex-1 min-w-[200px]">
                       <div className="font-medium text-sm">{r.branch}</div>
                       <div className="text-xs text-muted-foreground tabular-nums">
-                        R1: {r.r1 ?? "—"} · R2: {r.r2 ?? "—"}
+                        R1: {r.r1 ?? "Not Available"} · R2: {r.r2 ?? "Not Available"}
                       </div>
                     </div>
                     <div className="text-right">

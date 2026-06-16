@@ -28,7 +28,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 const STEPS = [
-  "Analyzing KCET Cutoffs...",
+  "Analyzing Round 1 Cutoffs...",
+  "Analyzing Round 2 Cutoffs...",
   "Checking Seat Matrix...",
   "Evaluating Admission Chances...",
   "Generating Recommendations...",
@@ -63,13 +64,13 @@ function Dashboard() {
     if (!running) return;
     setProgress(0);
     setStep(0);
-    const totalMs = 16000;
-    const tickMs = 200;
+    const totalMs = 5500;
+    const tickMs = 150;
     const inc = (tickMs / totalMs) * 100;
     const id = setInterval(() => {
       setProgress((p) => {
         const next = Math.min(99, p + inc);
-        const s = next >= 75 ? 3 : next >= 50 ? 2 : next >= 25 ? 1 : 0;
+        const s = Math.min(STEPS.length - 1, Math.floor((next / 100) * STEPS.length));
         setStep(s);
         return next;
       });
@@ -88,13 +89,13 @@ function Dashboard() {
     try {
       const [res] = await Promise.all([
         runPrediction({ rank: r, category, branches, mode, districts }),
-        new Promise((rs) => setTimeout(rs, 15000)), // min 15s for the animation feel
+        new Promise((rs) => setTimeout(rs, 5000)),
       ]);
       const elapsed = Date.now() - started;
-      if (elapsed < 16000) await new Promise((rs) => setTimeout(rs, 16000 - elapsed));
+      if (elapsed < 5400) await new Promise((rs) => setTimeout(rs, 5400 - elapsed));
       setProgress(100);
-      setStep(3);
-      await new Promise((rs) => setTimeout(rs, 400));
+      setStep(STEPS.length - 1);
+      await new Promise((rs) => setTimeout(rs, 300));
       setResult(res);
       if (!res.all.length) toast.warning("No matches — try widening branches, category or district.");
       else toast.success(`Found ${res.all.length} possible options`);
@@ -128,7 +129,7 @@ function Dashboard() {
       rank: Number(rank),
       category,
       branches: allBranches ? ["All branches"] : selectedBranches,
-      district: districts.length ? districts.join(", ") : "",
+      districts,
     });
   }
 
@@ -403,8 +404,8 @@ function ResultRow({ r }: { r: PredictionRow }) {
       <TableCell className="text-sm">{r.branch}</TableCell>
       <TableCell><Badge variant="outline">{r.category}</Badge></TableCell>
       <TableCell className="text-right text-sm tabular-nums">
-        <div>R1: {r.round1_cutoff ?? "—"}</div>
-        <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "—"}</div>
+        <div>R1: {r.round1_cutoff ?? "Not Available"}</div>
+        <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "Not Available"}</div>
       </TableCell>
       <TableCell><Badge className={tone}>{r.bucket} · {r.confidence}%</Badge></TableCell>
     </TableRow>
