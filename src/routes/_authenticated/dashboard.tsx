@@ -64,13 +64,13 @@ function Dashboard() {
     if (!running) return;
     setProgress(0);
     setStep(0);
-    const totalMs = 16000;
-    const tickMs = 200;
+    const totalMs = 5500;
+    const tickMs = 150;
     const inc = (tickMs / totalMs) * 100;
     const id = setInterval(() => {
       setProgress((p) => {
         const next = Math.min(99, p + inc);
-        const s = next >= 75 ? 3 : next >= 50 ? 2 : next >= 25 ? 1 : 0;
+        const s = Math.min(STEPS.length - 1, Math.floor((next / 100) * STEPS.length));
         setStep(s);
         return next;
       });
