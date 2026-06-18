@@ -73,6 +73,30 @@ export type Database = {
         }
         Relationships: []
       }
+      college_master: {
+        Row: {
+          college_code: string
+          college_name: string
+          created_at: string
+          district: string | null
+          updated_at: string
+        }
+        Insert: {
+          college_code: string
+          college_name: string
+          created_at?: string
+          district?: string | null
+          updated_at?: string
+        }
+        Update: {
+          college_code?: string
+          college_name?: string
+          created_at?: string
+          district?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kcet_cutoffs: {
         Row: {
           branch: string
