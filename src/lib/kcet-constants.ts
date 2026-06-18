@@ -1,3 +1,7 @@
+export const BRAND = "KCET - College & Course Predictor";
+export const BRAND_TAGLINE_LINE1 = "Get Your Dream College and Course";
+export const BRAND_TAGLINE_LINE2 = "Powered by Round 1, Round 2 & Seat Matrix Analysis";
+
 export const CATEGORIES = [
   "GM",
   "1G", "1K", "1R",
@@ -11,32 +15,31 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
+// Patterns are UPPERCASE substrings used to identify a row's branch.
+// Order matters for tie-breaking display priority; matching itself picks the
+// LONGEST matching pattern so e.g. "ARTIFICIAL INTELLIGENCE AND MACHINE LEARNING"
+// is never classified as plain "COMPUTER SCIENCE".
 export const BRANCHES = [
-  { label: "Computer Science & Engineering", pattern: "COMPUTER SCIENCE" },
-  { label: "Information Science & Engineering", pattern: "INFORMATION SCIENCE" },
   { label: "Artificial Intelligence & Machine Learning", pattern: "ARTIFICIAL INTELLIGENCE AND MACHINE" },
-  { label: "Artificial Intelligence & Data Science", pattern: "ARTIFICIAL INTELLIGENCE AND DATA" },
-  { label: "Electronics & Communication", pattern: "ELECTRONICS AND COMMUNICATION" },
-  { label: "Electrical & Electronics", pattern: "ELECTRICAL" },
-  { label: "Mechanical Engineering", pattern: "MECHANICAL" },
-  { label: "Civil Engineering", pattern: "CIVIL" },
-  { label: "Aeronautical Engineering", pattern: "AERONAUTICAL" },
-  { label: "Aerospace Engineering", pattern: "AERO SPACE" },
-  { label: "Automobile Engineering", pattern: "AUTOMOBILE" },
-  { label: "Biotechnology", pattern: "BIO" },
-  { label: "Chemical Engineering", pattern: "CHEMICAL" },
-  { label: "Industrial Engineering", pattern: "INDUSTRIAL" },
-  { label: "Robotics & Automation", pattern: "ROBOTIC" },
-  { label: "Cyber Security", pattern: "CYBER" },
+  { label: "Artificial Intelligence & Data Science",     pattern: "ARTIFICIAL INTELLIGENCE AND DATA" },
+  { label: "Computer Science & Engineering",             pattern: "COMPUTER SCIENCE" },
+  { label: "Information Science & Engineering",          pattern: "INFORMATION SCIENCE" },
+  { label: "Electronics & Communication",                pattern: "ELECTRONICS AND COMMUNICATION" },
+  { label: "Electrical & Electronics",                   pattern: "ELECTRICAL" },
+  { label: "Mechanical Engineering",                     pattern: "MECHANICAL" },
+  { label: "Civil Engineering",                          pattern: "CIVIL" },
+  { label: "Aeronautical Engineering",                   pattern: "AERONAUTICAL" },
+  { label: "Aerospace Engineering",                      pattern: "AERO SPACE" },
+  { label: "Automobile Engineering",                     pattern: "AUTOMOBILE" },
+  { label: "Biotechnology",                              pattern: "BIO" },
+  { label: "Chemical Engineering",                       pattern: "CHEMICAL" },
+  { label: "Industrial Engineering",                     pattern: "INDUSTRIAL" },
+  { label: "Robotics & Automation",                      pattern: "ROBOTIC" },
+  { label: "Cyber Security",                             pattern: "CYBER" },
 ] as const;
 
-export const PREDICTION_MODES = [
-  { id: "branch", label: "Dream Branch Priority", description: "Maximize chance of getting your preferred branch." },
-  { id: "college", label: "Dream College Priority", description: "Aim for top colleges; branch flexible." },
-  { id: "balanced", label: "Balanced Recommendation", description: "Mix of college reputation and branch fit." },
-] as const;
-
-export type PredictionMode = (typeof PREDICTION_MODES)[number]["id"];
+// Kept as a type alias for back-compat; the UI no longer surfaces a mode toggle.
+export type PredictionMode = "branch" | "college" | "balanced";
 
 export const DISTRICTS = [
   "Bagalkote", "Ballari", "Belagavi", "Bengaluru Rural", "Bengaluru Urban",
@@ -49,8 +52,6 @@ export const DISTRICTS = [
 
 export type District = (typeof DISTRICTS)[number];
 
-// Map keywords (commonly in college name) → district.
-// Falls back to "" when no keyword matches.
 const DISTRICT_KEYWORDS: Array<[string, District]> = [
   ["BAGALKOT", "Bagalkote"],
   ["BELLARY", "Ballari"], ["BALLARI", "Ballari"],
@@ -90,4 +91,20 @@ export function districtFor(collegeName: string): District | "" {
     if (up.includes(kw)) return d;
   }
   return "";
+}
+
+// Returns the canonical branch label for a raw KCET branch name, or null
+// if no known pattern is contained. Uses the LONGEST matching pattern so
+// specific branches (AIML, AIDS) are never collapsed into CSE.
+export function canonicalBranchLabel(rawBranch: string): string | null {
+  const up = rawBranch.toUpperCase();
+  let bestLen = -1;
+  let best: string | null = null;
+  for (const b of BRANCHES) {
+    if (up.includes(b.pattern) && b.pattern.length > bestLen) {
+      bestLen = b.pattern.length;
+      best = b.label;
+    }
+  }
+  return best;
 }

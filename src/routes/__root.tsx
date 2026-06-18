@@ -73,19 +73,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "KCET Counseling 2026" },
+      { title: "KCET - College & Course Predictor" },
       {
         name: "description",
         content:
           "AI-powered KCET counseling, college predictor, branch advisor and seat-matrix insights for Karnataka engineering aspirants.",
       },
-      { property: "og:title", content: "KCET Counseling 2026" },
+      { property: "og:title", content: "KCET - College & Course Predictor" },
       {
         property: "og:description",
         content: "AI-Powered KCET Counseling & College Prediction Platform.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:title", content: "KCET Counseling 2026" },
+      { name: "twitter:title", content: "KCET - College & Course Predictor" },
       { name: "description", content: "KCET Counseling & College Prediction Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected,and Sure-Shot college recommendation" },
       { property: "og:description", content: "KCET Counseling & College Prediction Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected,and Sure-Shot college recommendation" },
       { name: "twitter:description", content: "KCET Counseling & College Prediction Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected,and Sure-Shot college recommendation" },

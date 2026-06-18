@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  CATEGORIES, BRANCHES, PREDICTION_MODES, DISTRICTS,
-  type Category, type PredictionMode,
+  CATEGORIES, BRANCHES, DISTRICTS,
+  type Category,
 } from "@/lib/kcet-constants";
 import { runPrediction, downloadPredictionPdf, type PredictionResult, type PredictionRow } from "@/lib/predictor";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,6 @@ function Dashboard() {
 
   const [rank, setRank] = useState<string>("");
   const [category, setCategory] = useState<Category>("GM");
-  const [mode, setMode] = useState<PredictionMode>("balanced");
   const [allBranches, setAllBranches] = useState(false);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
@@ -88,7 +87,7 @@ function Dashboard() {
     const started = Date.now();
     try {
       const [res] = await Promise.all([
-        runPrediction({ rank: r, category, branches, mode, districts }),
+        runPrediction({ rank: r, category, branches, districts }),
         new Promise((rs) => setTimeout(rs, 5000)),
       ]);
       const elapsed = Date.now() - started;
@@ -101,7 +100,7 @@ function Dashboard() {
       else toast.success(`Found ${res.all.length} possible options`);
       if (user) {
         await supabase.from("predictions").insert({
-          user_id: user.id, rank: r, category, mode, branches,
+          user_id: user.id, rank: r, category, mode: "balanced", branches,
           results: res.all.slice(0, 50) as never,
         });
       }
@@ -263,18 +262,6 @@ function Dashboard() {
                 </>
               )}
             </div>
-            <div>
-              <Label>Prediction mode</Label>
-              <div className="mt-2 grid gap-2">
-                {PREDICTION_MODES.map((m) => (
-                  <button key={m.id} type="button" onClick={() => setMode(m.id)}
-                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                    <div className="font-medium">{m.label}</div>
-                    <div className="text-xs text-muted-foreground">{m.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
             <Button onClick={predict} disabled={running} className="w-full">
               {running ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Predicting...</>
                 : <><Sparkles className="h-4 w-4 mr-2" /> Predict colleges</>}
@@ -401,7 +388,7 @@ function ResultRow({ r }: { r: PredictionRow }) {
           {r.district && <><span>·</span><MapPin className="h-3 w-3" />{r.district}</>}
         </div>
       </TableCell>
-      <TableCell className="text-sm">{r.branch}</TableCell>
+      <TableCell className="text-sm">{r.branch_label || r.branch}</TableCell>
       <TableCell><Badge variant="outline">{r.category}</Badge></TableCell>
       <TableCell className="text-right text-sm tabular-nums">
         <div>R1: {r.round1_cutoff ?? "Not Available"}</div>

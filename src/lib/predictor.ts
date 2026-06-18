@@ -1,11 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
-import { BRANCHES, districtFor, type Category, type PredictionMode } from "./kcet-constants";
+import { BRANCHES, districtFor, canonicalBranchLabel, type Category, type PredictionMode } from "./kcet-constants";
 
 export interface PredictionRow {
   college_code: string;
   college_name: string;
   district: string;
   branch: string;
+  branch_label: string;
   category: string;
   round1_cutoff: number | null;
   round2_cutoff: number | null;
@@ -24,14 +25,6 @@ export interface PredictionResult {
   all: PredictionRow[];
 }
 
-function patternsFor(selected: string[]): { label: string; pattern: string }[] {
-  if (selected.includes("__all__")) return BRANCHES.map((b) => ({ label: b.label, pattern: b.pattern }));
-  return selected
-    .map((label) => BRANCHES.find((b) => b.label === label))
-    .filter((b): b is (typeof BRANCHES)[number] => !!b)
-    .map((b) => ({ label: b.label, pattern: b.pattern }));
-}
-
 function estimatePackage(qualityCutoff: number): string {
   if (qualityCutoff < 1500) return "₹18-30 LPA";
   if (qualityCutoff < 4000) return "₹12-20 LPA";
@@ -41,29 +34,23 @@ function estimatePackage(qualityCutoff: number): string {
   return "₹3-5 LPA";
 }
 
-// Per-rank-tier maximum Round 2 cutoff window (spec).
-// Returns Infinity for very large ranks (no upper bound).
+// Per-rank-tier upper bound for the initial fetch. Generous for very strong
+// ranks so top colleges always come back. Fallback below still kicks in.
 function maxCutoffFor(rank: number): number {
-  if (rank < 100) return 100;
-  if (rank < 1000) return 2500;
-  if (rank < 3000) return 5500;
-  if (rank < 6000) return 8500;
-  if (rank < 8000) return 12000;
-  if (rank < 10000) return 14000;
-  if (rank < 12000) return 18000;
-  if (rank < 20000) return rank + 4000;
-  if (rank < 30000) return rank + 4000;
-  if (rank < 50000) return rank + 8000;
-  if (rank < 80000) return rank + 15000;
-  if (rank < 100000) return rank + 20000;
-  if (rank < 130000) return rank + 30000;
-  if (rank < 160000) return rank + 35000;
-  if (rank < 180000) return rank + 40000;
-  if (rank < 200000) return rank + 45000;
+  if (rank < 100) return 50000;
+  if (rank < 500) return 25000;
+  if (rank < 1000) return 18000;
+  if (rank < 3000) return 12000;
+  if (rank < 6000) return 16000;
+  if (rank < 10000) return 22000;
+  if (rank < 15000) return 30000;
+  if (rank < 25000) return 45000;
+  if (rank < 50000) return rank + 20000;
+  if (rank < 100000) return rank + 30000;
   return Number.POSITIVE_INFINITY;
 }
 
-// Always-included aspirational colleges so top-ranked students still see stretch options.
+// Aspirational colleges — always pulled regardless of upperBound.
 const TOP_COLLEGE_KEYWORDS = [
   "R V COLLEGE", "R.V. COLLEGE", "RV COLLEGE",
   "B M S COLLEGE", "BMS COLLEGE",
@@ -76,35 +63,44 @@ const TOP_COLLEGE_KEYWORDS = [
   "NITTE MEENAKSHI",
   "SIR M VISVESVARAYA", "SIR MV",
   "JSS",
-  "BANGALORE INSTITUTE OF TECHNOLOGY", "B.I.T.",
+  "BANGALORE INSTITUTE OF TECHNOLOGY",
   "RNS INSTITUTE",
   "SIDDAGANGA INSTITUTE",
-  "BMS", "RVCE", "MSRIT",
 ];
 
 export async function runPrediction(opts: {
   rank: number;
   category: Category;
   branches: string[];
-  mode: PredictionMode;
+  mode?: PredictionMode;
   district?: string;
   districts?: string[];
 }): Promise<PredictionResult> {
-  const { rank, category, mode } = opts;
+  const { rank, category } = opts;
   const districtSet = new Set(
     (opts.districts && opts.districts.length ? opts.districts : opts.district ? [opts.district] : []).filter(Boolean),
   );
-  const isCollegeMode = mode === "college";
-  const orderedBranches = isCollegeMode ? patternsFor(["__all__"]) : patternsFor(opts.branches);
+
+  // Selected branch LABELS (or all branches sentinel).
+  const allBranches = opts.branches.includes("__all__");
+  const selectedLabels: Set<string> = allBranches
+    ? new Set<string>(BRANCHES.map((b) => b.label as string))
+    : new Set<string>(
+        opts.branches
+          .map((label) => BRANCHES.find((b) => b.label === label)?.label as string | undefined)
+          .filter((l): l is string => typeof l === "string" && l.length > 0),
+      );
+  const isStrict = !allBranches && selectedLabels.size > 0;
+
+  // Branch display priority — order user clicked them.
   const branchPriority = new Map<string, number>();
-  orderedBranches.forEach((b, i) => branchPriority.set(b.pattern, i));
+  opts.branches.forEach((label, i) => branchPriority.set(label, i));
 
   const upperBound = maxCutoffFor(rank);
   const useUpperBound = Number.isFinite(upperBound);
 
-  // Page through cutoff rows for the selected category — never silently truncate
-  // a single .limit() result for high ranks with wide windows.
   type Row = { college_code: string; college_name: string; branch: string; round: number; category: string; cutoff_rank: number };
+
   async function fetchRows(maxCutoff: number | null, branchFilter: boolean): Promise<Row[]> {
     const all: Row[] = [];
     const pageSize = 1000;
@@ -118,9 +114,14 @@ export async function runPrediction(opts: {
         .order("cutoff_rank", { ascending: true })
         .range(from, from + pageSize - 1);
       if (maxCutoff != null && Number.isFinite(maxCutoff)) q = q.lte("cutoff_rank", maxCutoff);
-      if (branchFilter && !isCollegeMode && orderedBranches.length && orderedBranches.length < BRANCHES.length) {
-        const ors = orderedBranches.map((p) => `branch.ilike.%${p.pattern}%`).join(",");
-        q = q.or(ors);
+      if (branchFilter && isStrict) {
+        const patterns = Array.from(selectedLabels)
+          .map((l) => BRANCHES.find((b) => b.label === l)?.pattern as string | undefined)
+          .filter((p): p is string => typeof p === "string" && p.length > 0);
+        if (patterns.length) {
+          const ors = patterns.map((p) => `branch.ilike.%${p}%`).join(",");
+          q = q.or(ors);
+        }
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -134,17 +135,22 @@ export async function runPrediction(opts: {
   const primary = await fetchRows(useUpperBound ? upperBound : null, true);
 
   // Aspirational top colleges — always pulled regardless of upperBound.
-  const ors = TOP_COLLEGE_KEYWORDS.map((k) => `college_name.ilike.%${k}%`).join(",");
+  const aspOrs = TOP_COLLEGE_KEYWORDS.map((k) => `college_name.ilike.%${k}%`).join(",");
   let topQ = supabase
     .from("kcet_cutoffs")
     .select("college_code,college_name,branch,round,category,cutoff_rank")
     .eq("category", category)
     .in("round", [1, 2])
     .gte("cutoff_rank", 1)
-    .or(ors);
-  if (!isCollegeMode && orderedBranches.length && orderedBranches.length < BRANCHES.length) {
-    const bors = orderedBranches.map((p) => `branch.ilike.%${p.pattern}%`).join(",");
-    topQ = topQ.or(bors);
+    .or(aspOrs);
+  if (isStrict) {
+    const patterns = Array.from(selectedLabels)
+      .map((l) => BRANCHES.find((b) => b.label === l)?.pattern as string | undefined)
+      .filter((p): p is string => typeof p === "string" && p.length > 0);
+    if (patterns.length) {
+      const bors = patterns.map((p) => `branch.ilike.%${p}%`).join(",");
+      topQ = topQ.or(bors);
+    }
   }
   const { data: topData } = await topQ.limit(4000);
 
@@ -152,20 +158,26 @@ export async function runPrediction(opts: {
     college_code: string;
     college_name: string;
     branch: string;
+    branch_label: string;
     category: string;
     r1?: number;
     r2?: number;
   };
+
   const map = new Map<string, Group>();
   const ingest = (rows: Row[] | null | undefined) => {
     for (const r of rows ?? []) {
       const v = Number(r.cutoff_rank);
       if (!Number.isFinite(v) || v <= 0) continue;
-      const key = `${r.college_code}|${r.branch}`;
+      const label = canonicalBranchLabel(r.branch);
+      if (!label) continue; // unknown / malformed branch
+      if (isStrict && !selectedLabels.has(label)) continue; // STRICT filter
+      const key = `${r.college_code}|${label}`;
       const g = map.get(key) ?? {
         college_code: r.college_code,
         college_name: r.college_name,
         branch: r.branch,
+        branch_label: label,
         category: r.category,
       };
       if (r.round === 1) g.r1 = v;
@@ -176,14 +188,8 @@ export async function runPrediction(opts: {
   ingest(primary);
   ingest((topData as Row[] | null) ?? []);
 
-  function priorityFor(branchName: string): number {
-    if (isCollegeMode) return 0;
-    const upper = branchName.toUpperCase();
-    let best = Number.MAX_SAFE_INTEGER;
-    for (const [pattern, idx] of branchPriority.entries()) {
-      if (upper.includes(pattern) && idx < best) best = idx;
-    }
-    return best === Number.MAX_SAFE_INTEGER ? 999 : best;
+  function priorityFor(label: string): number {
+    return branchPriority.has(label) ? (branchPriority.get(label) as number) : 999;
   }
 
   function buildRow(g: Group): PredictionRow | null {
@@ -195,37 +201,39 @@ export async function runPrediction(opts: {
     const dist = districtFor(g.college_name);
     if (districtSet.size && !districtSet.has(dist)) return null;
 
-    if (!isCollegeMode && orderedBranches.length && orderedBranches.length < BRANCHES.length) {
-      const up = g.branch.toUpperCase();
-      const matches = orderedBranches.some((p) => up.includes(p.pattern));
-      if (!matches) return null;
-    }
-
     const w1 = g.r1 != null ? 0.5 : 0;
     const w2 = g.r2 != null ? 0.5 : 0;
     const wsum = w1 + w2 || 1;
     const reference = ((g.r1 ?? 0) * w1 + (g.r2 ?? 0) * w2) / wsum;
+    // For sure-shot classification we use the BEST (highest) cutoff the
+    // student would still get in. Higher cutoff = easier seat.
     const admissionBasis = Math.max(g.r1 ?? 0, g.r2 ?? 0);
     const quality = Math.min(...cutoffs);
     const ratio = admissionBasis / Math.max(rank, 1);
 
+    // Classification (ratio = cutoff/rank):
+    //   ratio >= 1.30  → comfortably above rank      → Sure-Shot
+    //   ratio >= 0.95  → reasonably close to cutoff  → Expected
+    //   ratio <  0.95  → cutoff stronger than rank   → Top (aspirational)
     let confidence: number;
     let bucket: PredictionRow["bucket"];
-    if (ratio >= 1.6) { confidence = 96; bucket = "Sure-Shot"; }
-    else if (ratio >= 1.2) { confidence = 88; bucket = "Sure-Shot"; }
-    else if (ratio >= 1.0) { confidence = 72; bucket = "Expected"; }
-    else if (ratio >= 0.85) { confidence = 55; bucket = "Expected"; }
-    else if (ratio >= 0.7) { confidence = 38; bucket = "Top"; }
-    else if (ratio >= 0.5) { confidence = 22; bucket = "Top"; }
-    else if (ratio >= 0.3) { confidence = 12; bucket = "Top"; }
-    else if (ratio >= 0.15) { confidence = 6; bucket = "Top"; }
-    else { confidence = 3; bucket = "Top"; }
+    if (ratio >= 2.0)      { confidence = 99; bucket = "Sure-Shot"; }
+    else if (ratio >= 1.5) { confidence = 95; bucket = "Sure-Shot"; }
+    else if (ratio >= 1.3) { confidence = 88; bucket = "Sure-Shot"; }
+    else if (ratio >= 1.1) { confidence = 78; bucket = "Expected"; }
+    else if (ratio >= 0.95){ confidence = 62; bucket = "Expected"; }
+    else if (ratio >= 0.80){ confidence = 42; bucket = "Top"; }
+    else if (ratio >= 0.60){ confidence = 25; bucket = "Top"; }
+    else if (ratio >= 0.40){ confidence = 14; bucket = "Top"; }
+    else if (ratio >= 0.20){ confidence = 7;  bucket = "Top"; }
+    else                   { confidence = 3;  bucket = "Top"; }
 
     return {
       college_code: g.college_code,
       college_name: g.college_name,
       district: dist,
       branch: g.branch,
+      branch_label: g.branch_label,
       category: g.category,
       round1_cutoff: g.r1 ?? null,
       round2_cutoff: g.r2 ?? null,
@@ -233,7 +241,7 @@ export async function runPrediction(opts: {
       quality_cutoff: quality,
       confidence,
       bucket,
-      branch_priority: priorityFor(g.branch),
+      branch_priority: priorityFor(g.branch_label),
       avgPackage: estimatePackage(quality),
     };
   }
@@ -244,49 +252,43 @@ export async function runPrediction(opts: {
     if (row) rows.push(row);
   }
 
-  // Fallback: never return empty for a valid rank. Pull the full category set
-  // (no upper bound) and pick the best matches in selected district+branch.
-  if (!rows.length) {
+  // Fallback: if too few results (or none), pull the full category set
+  // with no upper bound. District + strict branch filters still apply.
+  if (rows.length < 12) {
     const fallback = await fetchRows(null, true);
     const fmap = new Map<string, Group>();
     for (const r of fallback) {
       const v = Number(r.cutoff_rank);
       if (!Number.isFinite(v) || v <= 0) continue;
-      const key = `${r.college_code}|${r.branch}`;
+      const label = canonicalBranchLabel(r.branch);
+      if (!label) continue;
+      if (isStrict && !selectedLabels.has(label)) continue;
+      const key = `${r.college_code}|${label}`;
       const g = fmap.get(key) ?? {
         college_code: r.college_code, college_name: r.college_name,
-        branch: r.branch, category: r.category,
+        branch: r.branch, branch_label: label, category: r.category,
       };
       if (r.round === 1) g.r1 = v;
       else if (r.round === 2) g.r2 = v;
       fmap.set(key, g);
     }
+    const seen = new Set(rows.map((r) => `${r.college_code}|${r.branch_label}`));
     for (const g of fmap.values()) {
+      const k = `${g.college_code}|${g.branch_label}`;
+      if (seen.has(k)) continue;
       const row = buildRow(g);
       if (row) rows.push(row);
     }
-    // Top-up to the best (lowest cutoff) options.
-    rows.sort((a, b) => a.quality_cutoff - b.quality_cutoff);
-    rows = rows.slice(0, 30);
   }
 
+  // Sort: cutoff-competitiveness (lower = stronger) within branch priority.
   const sortRows = (arr: PredictionRow[]) => {
-    if (isCollegeMode) {
-      arr.sort((a, b) => a.quality_cutoff - b.quality_cutoff);
-    } else if (mode === "branch") {
-      arr.sort(
-        (a, b) =>
-          a.branch_priority - b.branch_priority ||
-          a.quality_cutoff - b.quality_cutoff ||
-          b.confidence - a.confidence,
-      );
-    } else {
-      arr.sort((a, b) => {
-        const aScore = a.branch_priority * 5000 + a.quality_cutoff - a.confidence * 30;
-        const bScore = b.branch_priority * 5000 + b.quality_cutoff - b.confidence * 30;
-        return aScore - bScore;
-      });
-    }
+    arr.sort(
+      (a, b) =>
+        a.branch_priority - b.branch_priority ||
+        a.quality_cutoff - b.quality_cutoff ||
+        b.confidence - a.confidence,
+    );
     return arr;
   };
 
@@ -294,8 +296,8 @@ export async function runPrediction(opts: {
   const expected = sortRows(rows.filter((r) => r.bucket === "Expected"));
   const sureShot = sortRows(rows.filter((r) => r.bucket === "Sure-Shot"));
 
-  // Minimum result guarantee — if all three buckets are empty, promote the
-  // highest-quality available options into Top so the student always sees something.
+  // Guarantee: never return all-empty for a valid rank. Promote best options
+  // into Top so the student always sees something meaningful.
   if (!top.length && !expected.length && !sureShot.length && rows.length) {
     rows.sort((a, b) => a.quality_cutoff - b.quality_cutoff);
     for (const r of rows.slice(0, 12)) { r.bucket = "Top"; top.push(r); }
@@ -303,8 +305,8 @@ export async function runPrediction(opts: {
 
   const tier = rank < 2000 ? 0 : rank < 8000 ? 1 : rank < 25000 ? 2 : rank < 60000 ? 3 : 4;
   const caps = [
-    { top: 16, exp: 14, sure: 10 },
-    { top: 18, exp: 18, sure: 14 },
+    { top: 18, exp: 14, sure: 10 },
+    { top: 18, exp: 20, sure: 14 },
     { top: 18, exp: 22, sure: 20 },
     { top: 18, exp: 24, sure: 26 },
     { top: 18, exp: 26, sure: 32 },
@@ -322,9 +324,9 @@ export interface PdfMeta {
   studentName: string;
   rank: number;
   category: string;
-  branches: string[]; // selected branches as a list (already labels)
+  branches: string[];
   districts?: string[];
-  district?: string; // legacy
+  district?: string;
 }
 
 function cutoffText(v: number | null): string {
@@ -340,14 +342,15 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
 
   doc.setFontSize(16);
   doc.setTextColor(92, 59, 191);
-  doc.text("KCET Counselling 2026", 105, 18, { align: "center" });
-  doc.setFontSize(11);
+  doc.text("KCET - College & Course Predictor", 105, 18, { align: "center" });
+  doc.setFontSize(10);
   doc.setTextColor(60);
-  doc.text("Get Your Dream College and Course", 105, 26, { align: "center" });
+  doc.text("Get Your Dream College and Course", 105, 25, { align: "center" });
+  doc.text("Powered by Round 1, Round 2 & Seat Matrix Analysis", 105, 30, { align: "center" });
 
   doc.setFontSize(10);
   doc.setTextColor(20);
-  let y = 36;
+  let y = 40;
   const writeLine = (s: string) => { doc.text(s, 14, y); y += 6; };
   writeLine(`Student Name: ${meta.studentName}`);
   writeLine(`KCET Rank: ${meta.rank}`);
@@ -356,7 +359,6 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
   writeLine(`Generated: ${now}`);
   y += 2;
 
-  // Selected branches as a bulleted list — never single-line truncation.
   const branchList = meta.branches.filter((b) => b && b !== "__all__");
   doc.setFontSize(11);
   doc.setTextColor(92, 59, 191);
@@ -388,7 +390,7 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
       head: [["College", "Branch", "R1", "R2", "Probability"]],
       body: rows.map((r) => [
         `${r.college_name}${r.district ? "\n" + r.district : ""}`,
-        r.branch,
+        r.branch_label || r.branch,
         cutoffText(r.round1_cutoff),
         cutoffText(r.round2_cutoff),
         r.confidence + "%",
@@ -412,8 +414,8 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
     doc.setFontSize(9);
     doc.setTextColor(120);
     doc.text("Developed By — PAVAN S V", 105, 282, { align: "center" });
-    doc.text("KCET Counselling 2026 — Get Your Dream College and Course", 105, 287, { align: "center" });
-    doc.text("Generated using KCET Round 1, Round 2 and Seat Matrix Analysis.", 105, 292, { align: "center" });
+    doc.text("KCET - College & Course Predictor — Get Your Dream College and Course", 105, 287, { align: "center" });
+    doc.text("Powered by Round 1, Round 2 & Seat Matrix Analysis.", 105, 292, { align: "center" });
   }
 
   doc.save(`KCET-Prediction-${meta.studentName.replace(/\s+/g, "_")}-${meta.rank}.pdf`);
