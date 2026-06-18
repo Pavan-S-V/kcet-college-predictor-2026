@@ -87,7 +87,7 @@ function Dashboard() {
     const started = Date.now();
     try {
       const [res] = await Promise.all([
-        runPrediction({ rank: r, category, branches, mode, districts }),
+        runPrediction({ rank: r, category, branches, districts }),
         new Promise((rs) => setTimeout(rs, 5000)),
       ]);
       const elapsed = Date.now() - started;
@@ -100,7 +100,7 @@ function Dashboard() {
       else toast.success(`Found ${res.all.length} possible options`);
       if (user) {
         await supabase.from("predictions").insert({
-          user_id: user.id, rank: r, category, mode, branches,
+          user_id: user.id, rank: r, category, mode: "balanced", branches,
           results: res.all.slice(0, 50) as never,
         });
       }
