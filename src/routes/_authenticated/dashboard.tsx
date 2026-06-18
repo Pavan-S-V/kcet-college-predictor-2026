@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  CATEGORIES, BRANCHES, PREDICTION_MODES, DISTRICTS,
-  type Category, type PredictionMode,
+  CATEGORIES, BRANCHES, DISTRICTS,
+  type Category,
 } from "@/lib/kcet-constants";
 import { runPrediction, downloadPredictionPdf, type PredictionResult, type PredictionRow } from "@/lib/predictor";
 import { Button } from "@/components/ui/button";
