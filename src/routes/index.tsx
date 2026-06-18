@@ -79,15 +79,15 @@ function Landing() {
         <div className="bg-hero-gradient absolute inset-0 opacity-95" />
         <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 text-center text-white">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5" /> AI-Powered KCET Counseling 2025
+            <Sparkles className="h-3.5 w-3.5" /> KCET - College &amp; Course Predictor
           </div>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">
             Get Your Dream College <br className="hidden sm:block" />
             <span className="text-emerald-200">and Course</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-white/85">
-            AI-Powered KCET Counseling & College Prediction Platform. Built for Karnataka
-            engineering aspirants — turn your rank into a smart counseling plan in seconds.
+            Powered by Round 1, Round 2 &amp; Seat Matrix Analysis. Turn your KCET rank
+            into a smart counseling plan in seconds.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to="/auth">
