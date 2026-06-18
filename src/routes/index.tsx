@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Get Your Dream College and Course — KCET Counselling 2026" },
+      { title: "Get Your Dream College and Course — KCET - College & Course Predictor" },
       {
         name: "description",
         content:

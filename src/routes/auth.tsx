@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — KCET Counselling 2026" }] }),
+  head: () => ({ meta: [{ title: "Sign in — KCET - College & Course Predictor" }] }),
   component: AuthPage,
 });
 
@@ -80,7 +80,7 @@ function AuthPage() {
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/20 backdrop-blur">
               <GraduationCap className="h-5 w-5" />
             </span>
-            <span className="font-semibold">KCET Counselling 2026</span>
+            <span className="font-semibold">KCET - College & Course Predictor</span>
           </Link>
         </div>
       </div>

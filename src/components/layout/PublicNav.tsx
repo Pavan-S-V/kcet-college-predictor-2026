@@ -30,7 +30,7 @@ export function PublicNav() {
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
             <GraduationCap className="h-5 w-5" />
           </span>
-          <span className="font-semibold tracking-tight">KCET Counselling 2026</span>
+          <span className="font-semibold tracking-tight">KCET - College & Course Predictor</span>
         </Link>
 
         {isAuthed ? (

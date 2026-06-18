@@ -4,7 +4,7 @@ import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
 import pavanPhoto from "@/assets/pavan.jpeg.asset.json";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({ meta: [{ title: "About the Developer — KCET Counselling 2026" }] }),
+  head: () => ({ meta: [{ title: "About the Developer — KCET - College & Course Predictor" }] }),
   component: About,
 });
 
@@ -21,7 +21,7 @@ function About() {
           />
           <h1 className="mt-6 text-3xl font-medium sm:text-4xl">Hi, I'm Pavan S V</h1>
           <p className="mt-2 text-base text-white/85 sm:text-lg">
-            Founder & Developer of KCET Counselling 2026
+            Founder & Developer of KCET - College & Course Predictor
           </p>
           <p className="mt-1 text-base text-emerald-200 font-medium sm:text-lg">
             Get Your Dream College and Course
