@@ -41,7 +41,6 @@ function Dashboard() {
 
   const [rank, setRank] = useState<string>("");
   const [category, setCategory] = useState<Category>("GM");
-  const [mode, setMode] = useState<PredictionMode>("balanced");
   const [allBranches, setAllBranches] = useState(false);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
