@@ -83,12 +83,12 @@ export async function runPrediction(opts: {
 
   // Selected branch LABELS (or all branches sentinel).
   const allBranches = opts.branches.includes("__all__");
-  const selectedLabels = allBranches
-    ? new Set(BRANCHES.map((b) => b.label))
-    : new Set(
+  const selectedLabels: Set<string> = allBranches
+    ? new Set<string>(BRANCHES.map((b) => b.label as string))
+    : new Set<string>(
         opts.branches
-          .map((label) => BRANCHES.find((b) => b.label === label)?.label)
-          .filter((l): l is string => !!l),
+          .map((label) => BRANCHES.find((b) => b.label === label)?.label as string | undefined)
+          .filter((l): l is string => typeof l === "string" && l.length > 0),
       );
   const isStrict = !allBranches && selectedLabels.size > 0;
 
