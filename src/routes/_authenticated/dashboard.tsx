@@ -262,18 +262,6 @@ function Dashboard() {
                 </>
               )}
             </div>
-            <div>
-              <Label>Prediction mode</Label>
-              <div className="mt-2 grid gap-2">
-                {PREDICTION_MODES.map((m) => (
-                  <button key={m.id} type="button" onClick={() => setMode(m.id)}
-                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                    <div className="font-medium">{m.label}</div>
-                    <div className="text-xs text-muted-foreground">{m.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
             <Button onClick={predict} disabled={running} className="w-full">
               {running ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Predicting...</>
                 : <><Sparkles className="h-4 w-4 mr-2" /> Predict colleges</>}
