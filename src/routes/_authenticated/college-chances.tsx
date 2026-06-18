@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CATEGORIES, districtFor, type Category } from "@/lib/kcet-constants";
+import { CATEGORIES, districtFor, canonicalBranchLabel, type Category } from "@/lib/kcet-constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,13 +11,14 @@ import { toast } from "sonner";
 import { Loader2, MapPin, School, Target } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/college-chances")({
-  head: () => ({ meta: [{ title: "College & Branch Chances — KCET" }] }),
+  head: () => ({ meta: [{ title: "College & Branch Chances — KCET - College & Course Predictor" }] }),
   component: CollegeChances,
 });
 
-interface College { code: string; name: string }
+interface College { code: string; name: string; district: string }
 interface BranchRow {
   branch: string;
+  branch_label: string;
   r1: number | null;
   r2: number | null;
   probability: number;
@@ -30,18 +31,20 @@ function computeRow(rank: number, r1: number | null, r2: number | null): { proba
   const ratio = basis / Math.max(rank, 1);
   let probability = 0;
   let label: BranchRow["label"] = "Out of Range";
-  if (ratio >= 1.6) { probability = 100; label = "Sure-Shot"; }
-  else if (ratio >= 1.2) { probability = 90; label = "Sure-Shot"; }
-  else if (ratio >= 1.0) { probability = 70; label = "Expected"; }
-  else if (ratio >= 0.85) { probability = 55; label = "Expected"; }
-  else if (ratio >= 0.7) { probability = 38; label = "Top Pick"; }
-  else if (ratio >= 0.55) { probability = 22; label = "Top Pick"; }
-  else { probability = Math.max(2, Math.round(ratio * 20)); label = "Out of Range"; }
+  if (ratio >= 2.0)      { probability = 99; label = "Sure-Shot"; }
+  else if (ratio >= 1.5) { probability = 95; label = "Sure-Shot"; }
+  else if (ratio >= 1.3) { probability = 88; label = "Sure-Shot"; }
+  else if (ratio >= 1.1) { probability = 78; label = "Expected"; }
+  else if (ratio >= 0.95){ probability = 62; label = "Expected"; }
+  else if (ratio >= 0.80){ probability = 42; label = "Top Pick"; }
+  else if (ratio >= 0.60){ probability = 25; label = "Top Pick"; }
+  else                   { probability = Math.max(2, Math.round(ratio * 20)); label = "Out of Range"; }
   return { probability, label };
 }
 
 function CollegeChances() {
   const [colleges, setColleges] = useState<College[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<College | null>(null);
   const [rank, setRank] = useState("");
@@ -49,38 +52,45 @@ function CollegeChances() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<BranchRow[] | null>(null);
 
-  // Load distinct college list (code+name) across the full cutoff table via pagination
+  // Load complete master list once — instant client-side filtering after.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const seen = new Map<string, College>();
+      setLoadingList(true);
+      const all: College[] = [];
       const pageSize = 1000;
-      for (let from = 0; from < 60000; from += pageSize) {
+      for (let from = 0; from < 5000; from += pageSize) {
         const { data, error } = await supabase
-          .from("kcet_cutoffs")
-          .select("college_code,college_name")
-          .order("college_code", { ascending: true })
+          .from("college_master")
+          .select("college_code,college_name,district")
+          .order("college_name", { ascending: true })
           .range(from, from + pageSize - 1);
         if (error) { toast.error(error.message); break; }
         if (!data || !data.length) break;
         for (const r of data) {
-          if (!seen.has(r.college_code)) seen.set(r.college_code, { code: r.college_code, name: r.college_name });
+          all.push({
+            code: r.college_code,
+            name: r.college_name,
+            district: r.district || districtFor(r.college_name) || "",
+          });
         }
         if (data.length < pageSize) break;
       }
       if (!cancelled) {
-        setColleges(Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name)));
+        setColleges(all);
+        setLoadingList(false);
       }
     })();
     return () => { cancelled = true; };
   }, []);
 
+  // Instant filtering: starts at 1 character.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return colleges.slice(0, 50);
+    if (!q) return colleges.slice(0, 80);
     return colleges
       .filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
-      .slice(0, 50);
+      .slice(0, 80);
   }, [colleges, query]);
 
   async function check() {
@@ -98,16 +108,19 @@ function CollegeChances() {
         .in("round", [1, 2])
         .limit(2000);
       if (error) throw error;
-      const map = new Map<string, { r1: number | null; r2: number | null }>();
+      // Group by canonical branch label so AIML/AIDS/CSE never collapse together.
+      const map = new Map<string, { rawBranch: string; r1: number | null; r2: number | null }>();
       for (const x of data ?? []) {
-        const cur = map.get(x.branch) ?? { r1: null, r2: null };
+        const label = canonicalBranchLabel(x.branch);
+        const key = label ?? x.branch;
+        const cur = map.get(key) ?? { rawBranch: x.branch, r1: null, r2: null };
         if (x.round === 1) cur.r1 = Number(x.cutoff_rank);
         else if (x.round === 2) cur.r2 = Number(x.cutoff_rank);
-        map.set(x.branch, cur);
+        map.set(key, cur);
       }
-      const out: BranchRow[] = Array.from(map.entries()).map(([branch, v]) => {
+      const out: BranchRow[] = Array.from(map.entries()).map(([key, v]) => {
         const { probability, label } = computeRow(r, v.r1, v.r2);
-        return { branch, r1: v.r1, r2: v.r2, probability, label };
+        return { branch: v.rawBranch, branch_label: key, r1: v.r1, r2: v.r2, probability, label };
       });
       out.sort((a, b) => b.probability - a.probability);
       setRows(out);
@@ -130,26 +143,36 @@ function CollegeChances() {
         <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
           <div>
             <Label>Search college (name or code)</Label>
-            <Input placeholder="e.g. RV College, E005..." value={query}
-              onChange={(e) => { setQuery(e.target.value); setPicked(null); }} />
+            <Input
+              placeholder={loadingList ? "Loading colleges..." : "e.g. RV, BMS, E005, Siddaganga"}
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setPicked(null); }}
+            />
             {!picked && (
-              <div className="mt-2 max-h-56 overflow-y-auto rounded-md border border-border">
-                {filtered.map((c) => (
-                  <button key={c.code} type="button"
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
-                    onClick={() => { setPicked(c); setQuery(c.name); }}>
-                    <div className="font-medium line-clamp-1">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">{c.code}{districtFor(c.name) && ` · ${districtFor(c.name)}`}</div>
-                  </button>
-                ))}
-                {!filtered.length && <div className="p-3 text-sm text-muted-foreground">No matches</div>}
+              <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border">
+                {loadingList ? (
+                  <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading {colleges.length || ""} colleges...
+                  </div>
+                ) : filtered.length ? (
+                  filtered.map((c) => (
+                    <button key={c.code} type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                      onClick={() => { setPicked(c); setQuery(c.name); }}>
+                      <div className="font-medium line-clamp-1">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">{c.code}{c.district && ` • ${c.district}`}</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-3 text-sm text-muted-foreground">No matches</div>
+                )}
               </div>
             )}
             {picked && (
               <div className="mt-2 rounded-md border border-primary bg-primary/5 p-3 text-sm">
                 <div className="font-medium">{picked.name}</div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  {picked.code}{districtFor(picked.name) && <><span>·</span><MapPin className="h-3 w-3" />{districtFor(picked.name)}</>}
+                  {picked.code}{picked.district && <><span>·</span><MapPin className="h-3 w-3" />{picked.district}</>}
                 </div>
               </div>
             )}
@@ -185,15 +208,15 @@ function CollegeChances() {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold">{picked.name}</h2>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    {picked.code}{districtFor(picked.name) && <><span>·</span><MapPin className="h-3 w-3" />{districtFor(picked.name)}</>}
+                    {picked.code}{picked.district && <><span>·</span><MapPin className="h-3 w-3" />{picked.district}</>}
                   </p>
                 </div>
               )}
               <ul className="divide-y divide-border">
                 {rows.map((r) => (
-                  <li key={r.branch} className="flex flex-wrap items-center gap-3 py-3">
+                  <li key={r.branch_label} className="flex flex-wrap items-center gap-3 py-3">
                     <div className="flex-1 min-w-[200px]">
-                      <div className="font-medium text-sm">{r.branch}</div>
+                      <div className="font-medium text-sm">{r.branch_label}</div>
                       <div className="text-xs text-muted-foreground tabular-nums">
                         R1: {r.r1 ?? "Not Available"} · R2: {r.r2 ?? "Not Available"}
                       </div>
