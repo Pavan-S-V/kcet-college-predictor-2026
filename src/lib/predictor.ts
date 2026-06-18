@@ -116,8 +116,8 @@ export async function runPrediction(opts: {
       if (maxCutoff != null && Number.isFinite(maxCutoff)) q = q.lte("cutoff_rank", maxCutoff);
       if (branchFilter && isStrict) {
         const patterns = Array.from(selectedLabels)
-          .map((l) => BRANCHES.find((b) => b.label === l)?.pattern)
-          .filter((p): p is string => !!p);
+          .map((l) => BRANCHES.find((b) => b.label === l)?.pattern as string | undefined)
+          .filter((p): p is string => typeof p === "string" && p.length > 0);
         if (patterns.length) {
           const ors = patterns.map((p) => `branch.ilike.%${p}%`).join(",");
           q = q.or(ors);
@@ -145,8 +145,8 @@ export async function runPrediction(opts: {
     .or(aspOrs);
   if (isStrict) {
     const patterns = Array.from(selectedLabels)
-      .map((l) => BRANCHES.find((b) => b.label === l)?.pattern)
-      .filter((p): p is string => !!p);
+      .map((l) => BRANCHES.find((b) => b.label === l)?.pattern as string | undefined)
+      .filter((p): p is string => typeof p === "string" && p.length > 0);
     if (patterns.length) {
       const bors = patterns.map((p) => `branch.ilike.%${p}%`).join(",");
       topQ = topQ.or(bors);
