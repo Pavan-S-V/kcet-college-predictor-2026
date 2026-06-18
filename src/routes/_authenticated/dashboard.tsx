@@ -388,7 +388,7 @@ function ResultRow({ r }: { r: PredictionRow }) {
           {r.district && <><span>·</span><MapPin className="h-3 w-3" />{r.district}</>}
         </div>
       </TableCell>
-      <TableCell className="text-sm">{r.branch}</TableCell>
+      <TableCell className="text-sm">{r.branch_label || r.branch}</TableCell>
       <TableCell><Badge variant="outline">{r.category}</Badge></TableCell>
       <TableCell className="text-right text-sm tabular-nums">
         <div>R1: {r.round1_cutoff ?? "Not Available"}</div>
