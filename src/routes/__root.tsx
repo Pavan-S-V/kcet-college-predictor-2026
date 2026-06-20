@@ -73,24 +73,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "KCET - College & Course Predictor" },
+      { title: "KCET - College & Course Predictor 2026" },
       {
         name: "description",
         content:
           "AI-powered KCET counseling, college predictor, branch advisor and seat-matrix insights for Karnataka engineering aspirants.",
       },
-      { property: "og:title", content: "KCET - College & Course Predictor" },
+      { property: "og:title", content: "KCET - College & Course Predictor 2026" },
       {
         property: "og:description",
         content: "AI-Powered KCET Counseling & College Prediction Platform.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:title", content: "KCET - College & Course Predictor" },
-      { name: "description", content: "KCET Counseling & College Prediction Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected,and Sure-Shot college recommendation" },
-      { property: "og:description", content: "KCET Counseling & College Prediction Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected,and Sure-Shot college recommendation" },
-      { name: "twitter:description", content: "KCET Counseling & College Prediction Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected,and Sure-Shot college recommendation" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/c0OQjhyk1oRkYUVzMFPud4961Nm1/social-images/social-1781253789001-Annotation_2026-06-12_134909_imgupscaler.ai_V1(Fast)_2K.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/c0OQjhyk1oRkYUVzMFPud4961Nm1/social-images/social-1781253789001-Annotation_2026-06-12_134909_imgupscaler.ai_V1(Fast)_2K.webp" },
+      { name: "twitter:title", content: "KCET - College & Course Predictor 2026" },
+      { name: "description", content: "KCET College & Course Predictor Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected, and Sure-Shot college recommendation" },
+      { property: "og:description", content: "KCET College & Course Predictor Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected, and Sure-Shot college recommendation" },
+      { name: "twitter:description", content: "KCET College & Course Predictor Platform. Predict colleges based on KCET rank, category, and branch. Get Top, Expected, and Sure-Shot college recommendation" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/c0OQjhyk1oRkYUVzMFPud4961Nm1/social-images/social-1781940454867-Annotation_2026-06-20_125153_imgupscaler.ai_V1(Fast)_2K.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/c0OQjhyk1oRkYUVzMFPud4961Nm1/social-images/social-1781940454867-Annotation_2026-06-20_125153_imgupscaler.ai_V1(Fast)_2K.webp" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
