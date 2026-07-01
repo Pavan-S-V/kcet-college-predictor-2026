@@ -23,6 +23,10 @@ export interface PredictionResult {
   expected: PredictionRow[];
   sureShot: PredictionRow[];
   all: PredictionRow[];
+  /** Unified option-entry ordered list (mixed branches). */
+  recommended: PredictionRow[];
+  /** True when rank ≤ 300 and the engine returned only the single best college. */
+  singleTop: boolean;
 }
 
 function estimatePackage(qualityCutoff: number): string {
@@ -34,23 +38,22 @@ function estimatePackage(qualityCutoff: number): string {
   return "₹3-5 LPA";
 }
 
-// Per-rank-tier upper bound for the initial fetch. Generous for very strong
-// ranks so top colleges always come back. Fallback below still kicks in.
+// Realistic upper bound: cutoff must be within a sensible distance of the
+// student's rank. Anything beyond this is not a "practical" option-entry pick.
 function maxCutoffFor(rank: number): number {
-  if (rank < 100) return 50000;
-  if (rank < 500) return 25000;
-  if (rank < 1000) return 18000;
+  if (rank < 100) return 25000;
+  if (rank < 500) return 20000;
+  if (rank < 1000) return 15000;
   if (rank < 3000) return 12000;
   if (rank < 6000) return 16000;
   if (rank < 10000) return 22000;
   if (rank < 15000) return 30000;
   if (rank < 25000) return 45000;
-  if (rank < 50000) return rank + 20000;
-  if (rank < 100000) return rank + 30000;
-  return Number.POSITIVE_INFINITY;
+  if (rank < 50000) return Math.round(rank * 1.6);
+  if (rank < 100000) return Math.round(rank * 1.5);
+  return Math.round(rank * 1.4);
 }
 
-// Aspirational colleges — always pulled regardless of upperBound.
 const TOP_COLLEGE_KEYWORDS = [
   "R V COLLEGE", "R.V. COLLEGE", "RV COLLEGE",
   "B M S COLLEGE", "BMS COLLEGE",
@@ -81,7 +84,6 @@ export async function runPrediction(opts: {
     (opts.districts && opts.districts.length ? opts.districts : opts.district ? [opts.district] : []).filter(Boolean),
   );
 
-  // Selected branch LABELS (or all branches sentinel).
   const allBranches = opts.branches.includes("__all__");
   const selectedLabels: Set<string> = allBranches
     ? new Set<string>(BRANCHES.map((b) => b.label as string))
@@ -92,7 +94,6 @@ export async function runPrediction(opts: {
       );
   const isStrict = !allBranches && selectedLabels.size > 0;
 
-  // Branch display priority — order user clicked them.
   const branchPriority = new Map<string, number>();
   opts.branches.forEach((label, i) => branchPriority.set(label, i));
 
@@ -134,7 +135,7 @@ export async function runPrediction(opts: {
 
   const primary = await fetchRows(useUpperBound ? upperBound : null, true);
 
-  // Aspirational top colleges — always pulled regardless of upperBound.
+  // Aspirational top colleges
   const aspOrs = TOP_COLLEGE_KEYWORDS.map((k) => `college_name.ilike.%${k}%`).join(",");
   let topQ = supabase
     .from("kcet_cutoffs")
@@ -170,9 +171,12 @@ export async function runPrediction(opts: {
       const v = Number(r.cutoff_rank);
       if (!Number.isFinite(v) || v <= 0) continue;
       const label = canonicalBranchLabel(r.branch);
-      if (!label) continue; // unknown / malformed branch
-      if (isStrict && !selectedLabels.has(label)) continue; // STRICT filter
-      const key = `${r.college_code}|${label}`;
+      if (!label) continue;
+      if (isStrict && !selectedLabels.has(label)) continue;
+      // Match strictly on college_code + branch_label + category — never on
+      // fuzzy college-name matching. Both R1 and R2 for the same triple
+      // collapse into a single group so a valid record is never skipped.
+      const key = `${r.college_code}|${label}|${r.category}`;
       const g = map.get(key) ?? {
         college_code: r.college_code,
         college_name: r.college_name,
@@ -205,16 +209,10 @@ export async function runPrediction(opts: {
     const w2 = g.r2 != null ? 0.5 : 0;
     const wsum = w1 + w2 || 1;
     const reference = ((g.r1 ?? 0) * w1 + (g.r2 ?? 0) * w2) / wsum;
-    // For sure-shot classification we use the BEST (highest) cutoff the
-    // student would still get in. Higher cutoff = easier seat.
     const admissionBasis = Math.max(g.r1 ?? 0, g.r2 ?? 0);
     const quality = Math.min(...cutoffs);
     const ratio = admissionBasis / Math.max(rank, 1);
 
-    // Classification (ratio = cutoff/rank):
-    //   ratio >= 1.30  → comfortably above rank      → Sure-Shot
-    //   ratio >= 0.95  → reasonably close to cutoff  → Expected
-    //   ratio <  0.95  → cutoff stronger than rank   → Top (aspirational)
     let confidence: number;
     let bucket: PredictionRow["bucket"];
     if (ratio >= 2.0)      { confidence = 99; bucket = "Sure-Shot"; }
@@ -252,8 +250,7 @@ export async function runPrediction(opts: {
     if (row) rows.push(row);
   }
 
-  // Fallback: if too few results (or none), pull the full category set
-  // with no upper bound. District + strict branch filters still apply.
+  // Fallback: too few in-range → widen (no upperBound) but keep strict branch/district.
   if (rows.length < 12) {
     const fallback = await fetchRows(null, true);
     const fmap = new Map<string, Group>();
@@ -263,7 +260,7 @@ export async function runPrediction(opts: {
       const label = canonicalBranchLabel(r.branch);
       if (!label) continue;
       if (isStrict && !selectedLabels.has(label)) continue;
-      const key = `${r.college_code}|${label}`;
+      const key = `${r.college_code}|${label}|${r.category}`;
       const g = fmap.get(key) ?? {
         college_code: r.college_code, college_name: r.college_name,
         branch: r.branch, branch_label: label, category: r.category,
@@ -281,42 +278,90 @@ export async function runPrediction(opts: {
     }
   }
 
-  // Sort: cutoff-competitiveness (lower = stronger) within branch priority.
-  const sortRows = (arr: PredictionRow[]) => {
-    arr.sort(
-      (a, b) =>
-        a.branch_priority - b.branch_priority ||
-        a.quality_cutoff - b.quality_cutoff ||
-        b.confidence - a.confidence,
-    );
-    return arr;
-  };
-
-  const top = sortRows(rows.filter((r) => r.bucket === "Top"));
-  const expected = sortRows(rows.filter((r) => r.bucket === "Expected"));
-  const sureShot = sortRows(rows.filter((r) => r.bucket === "Sure-Shot"));
-
-  // Guarantee: never return all-empty for a valid rank. Promote best options
-  // into Top so the student always sees something meaningful.
-  if (!top.length && !expected.length && !sureShot.length && rows.length) {
-    rows.sort((a, b) => a.quality_cutoff - b.quality_cutoff);
-    for (const r of rows.slice(0, 12)) { r.bucket = "Top"; top.push(r); }
+  // ------- Special: Rank 1–300 → return only the single best college -------
+  if (rank >= 1 && rank <= 300 && rows.length) {
+    // Top college = college with the strongest (lowest) cutoff for the
+    // selected branch/category/district set. Aggregate by college_code.
+    const byCollege = new Map<string, { rows: PredictionRow[]; best: number }>();
+    for (const r of rows) {
+      const bag = byCollege.get(r.college_code) ?? { rows: [], best: Number.POSITIVE_INFINITY };
+      bag.rows.push(r);
+      bag.best = Math.min(bag.best, r.quality_cutoff);
+      byCollege.set(r.college_code, bag);
+    }
+    let bestCode: string | null = null;
+    let bestVal = Number.POSITIVE_INFINITY;
+    for (const [code, bag] of byCollege) {
+      if (bag.best < bestVal) { bestVal = bag.best; bestCode = code; }
+    }
+    if (bestCode) {
+      const only = byCollege.get(bestCode)!.rows;
+      only.sort(
+        (a, b) => a.branch_priority - b.branch_priority || a.quality_cutoff - b.quality_cutoff,
+      );
+      // Mark all as "Top" and return as recommended.
+      only.forEach((r) => (r.bucket = "Top"));
+      return {
+        top: only, expected: [], sureShot: [], all: only, recommended: only, singleTop: true,
+      };
+    }
   }
 
+  // ------- Normal ranking: interleave branches like a real option list -------
+  // Score each row: lower is better. Cutoff competitiveness + small penalty for
+  // dropped branch priority (so first-picked branches still lead, but branches
+  // are naturally MIXED instead of grouped).
+  rows.forEach((r) => {
+    // ignore
+  });
+  const scoreOf = (r: PredictionRow) =>
+    r.quality_cutoff + r.branch_priority * 50 - r.confidence * 5;
+
+  // Per-branch queues sorted by score
+  const queues = new Map<string, PredictionRow[]>();
+  for (const r of rows) {
+    const key = r.branch_label;
+    const arr = queues.get(key) ?? [];
+    arr.push(r);
+    queues.set(key, arr);
+  }
+  for (const arr of queues.values()) arr.sort((a, b) => scoreOf(a) - scoreOf(b));
+
+  // Branch order = student priority (first click first).
+  const branchOrder = Array.from(new Set(opts.branches.filter((b) => b !== "__all__")));
+  for (const k of queues.keys()) if (!branchOrder.includes(k)) branchOrder.push(k);
+
+  const recommended: PredictionRow[] = [];
+  let progress = true;
+  while (progress) {
+    progress = false;
+    for (const label of branchOrder) {
+      const q = queues.get(label);
+      if (q && q.length) {
+        recommended.push(q.shift()!);
+        progress = true;
+      }
+    }
+  }
+
+  // Cap at a reasonable option-entry length based on rank tier.
   const tier = rank < 2000 ? 0 : rank < 8000 ? 1 : rank < 25000 ? 2 : rank < 60000 ? 3 : 4;
-  const caps = [
-    { top: 18, exp: 14, sure: 10 },
-    { top: 18, exp: 20, sure: 14 },
-    { top: 18, exp: 22, sure: 20 },
-    { top: 18, exp: 24, sure: 26 },
-    { top: 18, exp: 26, sure: 32 },
-  ][tier];
+  const capTotal = [30, 45, 55, 65, 75][tier];
+  const finalList = recommended.slice(0, capTotal);
 
-  const topOut = top.slice(0, caps.top);
-  const expOut = expected.slice(0, caps.exp);
-  const sureOut = sureShot.slice(0, caps.sure);
+  const top = finalList.filter((r) => r.bucket === "Top");
+  const expected = finalList.filter((r) => r.bucket === "Expected");
+  const sureShot = finalList.filter((r) => r.bucket === "Sure-Shot");
 
-  return { top: topOut, expected: expOut, sureShot: sureOut, all: [...topOut, ...expOut, ...sureOut] };
+  // Guarantee a non-empty result
+  if (!finalList.length && rows.length) {
+    rows.sort((a, b) => a.quality_cutoff - b.quality_cutoff);
+    const slice = rows.slice(0, 12);
+    slice.forEach((r) => (r.bucket = "Top"));
+    return { top: slice, expected: [], sureShot: [], all: slice, recommended: slice, singleTop: false };
+  }
+
+  return { top, expected, sureShot, all: finalList, recommended: finalList, singleTop: false };
 }
 
 // ---------- PDF ----------
@@ -378,17 +423,37 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
   }
   y += 4;
 
-  const renderSection = (title: string, rows: PredictionRow[]) => {
-    if (!rows.length) return;
+  // Important notice
+  if (y > pageHeight - 45) { doc.addPage(); y = 20; }
+  doc.setFontSize(11);
+  doc.setTextColor(92, 59, 191);
+  doc.text("Important Notice", 14, y);
+  y += 5;
+  doc.setFontSize(9);
+  doc.setTextColor(50);
+  const notice =
+    "Please carefully review official KEA counseling information before making your final option entry decisions. Consider your branch interests, college preferences, location, career goals, and official cutoff trends while selecting options during counseling.";
+  const wrapped = doc.splitTextToSize(notice, 182);
+  for (const line of wrapped) {
+    if (y > pageHeight - 25) { doc.addPage(); y = 20; }
+    doc.text(line, 14, y);
+    y += 5;
+  }
+  y += 4;
+
+  // Unified recommendation list
+  const list = result.recommended && result.recommended.length ? result.recommended : result.all;
+  if (list.length) {
     if (y > pageHeight - 40) { doc.addPage(); y = 20; }
     doc.setFontSize(12);
     doc.setTextColor(92, 59, 191);
-    doc.text(title, 14, y);
+    doc.text("Recommended Option Entry List", 14, y);
     y += 2;
     autoTable(doc, {
       startY: y + 2,
-      head: [["College", "Branch", "R1", "R2", "Probability"]],
-      body: rows.map((r) => [
+      head: [["S.No", "College", "Branch", "R1", "R2", "Probability"]],
+      body: list.map((r, i) => [
+        String(i + 1),
         `${r.college_name}${r.district ? "\n" + r.district : ""}`,
         r.branch_label || r.branch,
         cutoffText(r.round1_cutoff),
@@ -397,16 +462,17 @@ export async function downloadPredictionPdf(result: PredictionResult, meta: PdfM
       ]),
       styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
       headStyles: { fillColor: [92, 59, 191], textColor: 255 },
-      columnStyles: { 0: { cellWidth: 65 }, 1: { cellWidth: 60 }, 2: { cellWidth: 18 }, 3: { cellWidth: 18 } },
+      columnStyles: {
+        0: { cellWidth: 12, halign: "center" },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 20 },
+      },
       margin: { left: 14, right: 14 },
     });
-    // @ts-expect-error jspdf lastAutoTable
-    y = (doc.lastAutoTable?.finalY ?? y) + 10;
-  };
-
-  renderSection("Top Colleges (High Reach)", result.top);
-  renderSection("Expected Colleges (Realistic Matches)", result.expected);
-  renderSection("Sure-Shot Colleges (Safe Options)", result.sureShot);
+  }
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {

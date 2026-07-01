@@ -1,13 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   ArrowRight,
-  Brain,
-  Mic,
   GraduationCap,
-  BarChart3,
   FileDown,
   ListChecks,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
@@ -50,19 +48,9 @@ const FEATURES = [
     text: "Pick your preferred branches and discover where you'll most likely get a seat.",
   },
   {
-    icon: Brain,
-    title: "AI Counselor",
-    text: "Chat with an AI mentor trained on KCET counseling, eligibility and strategy.",
-  },
-  {
-    icon: Mic,
-    title: "Voice Assistant",
-    text: "Ask questions hands-free — speak naturally and get spoken responses.",
-  },
-  {
-    icon: BarChart3,
-    title: "College Comparison",
-    text: "Compare cutoffs, expected packages and confidence side-by-side.",
+    icon: Target,
+    title: "College & Branch Chances",
+    text: "Explore admission chances for every branch within a selected college using Round 1, Round 2 cutoff analysis, category trends, and seat matrix data.",
   },
   {
     icon: FileDown,
@@ -126,10 +114,10 @@ function Landing() {
             Everything you need for <span className="text-gradient">KCET counseling</span>
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            One platform — prediction, comparison, AI mentoring and a shareable PDF report.
+            One platform — prediction, branch chances and a shareable PDF report.
           </p>
         </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => {
             const Icon = f.icon;
             return (

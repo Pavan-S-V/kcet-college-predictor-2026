@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,11 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -16,31 +20,56 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
-      else setCheckingSession(false);
+      if (data.session) {
+        navigate({ to: "/dashboard", replace: true });
+      } else {
+        setCheckingSession(false);
+      }
     });
-  }, [navigate]);
+    // Safety net — if a session appears (Google popup / magic link),
+    // route to dashboard immediately without requiring a manual refresh.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+        router.invalidate();
+        navigate({ to: "/dashboard", replace: true });
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate, router]);
+
+  function requireAgreed(): boolean {
+    if (!agreed) {
+      toast.error("Please accept the Terms & Conditions to continue.");
+      return false;
+    }
+    return true;
+  }
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAgreed()) return;
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back!");
+    router.invalidate();
     navigate({ to: "/dashboard", replace: true });
   }
 
   async function register(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAgreed()) return;
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -56,11 +85,13 @@ function AuthPage() {
   }
 
   async function google() {
+    if (!requireAgreed()) return;
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
+      redirect_uri: window.location.origin + "/auth",
     });
     if (result.error) return toast.error(result.error.message ?? "Google sign-in failed");
     if (result.redirected) return;
+    router.invalidate();
     navigate({ to: "/dashboard", replace: true });
   }
 
@@ -92,7 +123,26 @@ function AuthPage() {
             Sign in to start predicting your KCET colleges.
           </p>
 
-          <Button variant="outline" className="mt-6 w-full" onClick={google}>
+          <div className="mt-5 flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3">
+            <Checkbox
+              id="terms"
+              checked={agreed}
+              onCheckedChange={(v) => setAgreed(!!v)}
+              className="mt-0.5"
+            />
+            <label htmlFor="terms" className="cursor-pointer text-sm leading-snug">
+              I have read and agree to the{" "}
+              <TermsDialog />
+              .
+            </label>
+          </div>
+
+          <Button
+            variant="outline"
+            className="mt-4 w-full"
+            onClick={google}
+            disabled={!agreed}
+          >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -122,7 +172,7 @@ function AuthPage() {
                   <Label htmlFor="lp">Password</Label>
                   <Input id="lp" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !agreed}>
                   {loading ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
@@ -142,7 +192,7 @@ function AuthPage() {
                   <Label htmlFor="rp">Password</Label>
                   <Input id="rp" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !agreed}>
                   {loading ? "Creating account..." : "Create account"}
                 </Button>
               </form>
@@ -151,5 +201,49 @@ function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function TermsDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+          onClick={(e) => e.preventDefault()}
+        >
+          Terms &amp; Conditions
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Terms &amp; Conditions</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm leading-relaxed text-foreground">
+          <p>
+            This platform provides prediction and counseling guidance using Round 1,
+            Round 2, and Seat Matrix analysis.
+          </p>
+          <p>Predictions are estimates intended to assist students.</p>
+          <p>
+            Admission outcomes may vary due to category competition, counseling rounds,
+            seat availability, newly added seats, and official KEA decisions.
+          </p>
+          <p>
+            Students must verify all information through official KEA sources before
+            final option entry.
+          </p>
+          <p>
+            <strong>KCET College &amp; Course Predictor</strong> and its developer are
+            not responsible for final allotment outcomes or counseling decisions.
+          </p>
+          <p>
+            This platform should be used as a guidance tool and not as the sole basis
+            for admission decisions.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
