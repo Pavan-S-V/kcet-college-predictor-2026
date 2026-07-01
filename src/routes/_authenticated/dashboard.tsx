@@ -11,16 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Sparkles, Target, Trophy, Rocket, FileDown, MapPin, ChevronsUpDown, X } from "lucide-react";
+import { Loader2, Search, Sparkles, Trophy, FileDown, MapPin, ChevronsUpDown, X, GraduationCap, Info } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Predict College — KCET" }] }),
@@ -50,7 +52,6 @@ function Dashboard() {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [search, setSearch] = useState("");
-  const [bucketFilter, setBucketFilter] = useState<"all" | "Sure-Shot" | "Expected" | "Top">("all");
 
   function toggleBranch(label: string) {
     setSelectedBranches((prev) =>
@@ -58,7 +59,6 @@ function Dashboard() {
     );
   }
 
-  // Animated progress while predicting
   useEffect(() => {
     if (!running) return;
     setProgress(0);
@@ -97,6 +97,7 @@ function Dashboard() {
       await new Promise((rs) => setTimeout(rs, 300));
       setResult(res);
       if (!res.all.length) toast.warning("No matches — try widening branches, category or district.");
+      else if (res.singleTop) toast.success(`Top college found for Rank ${r}`);
       else toast.success(`Found ${res.all.length} possible options`);
       if (user) {
         await supabase.from("predictions").insert({
@@ -113,13 +114,13 @@ function Dashboard() {
 
   const tableRows = useMemo(() => {
     if (!result) return [];
-    const base = bucketFilter === "all" ? result.all : result.all.filter((r) => r.bucket === bucketFilter);
+    const base = result.recommended && result.recommended.length ? result.recommended : result.all;
     if (!search.trim()) return base;
     const q = search.toLowerCase();
     return base.filter(
       (r) => r.college_name.toLowerCase().includes(q) || r.branch.toLowerCase().includes(q),
     );
-  }, [result, bucketFilter, search]);
+  }, [result, search]);
 
   function pdf() {
     if (!result || !tableRows.length) return;
@@ -148,7 +149,10 @@ function Dashboard() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
         <div className="rounded-2xl border border-border bg-surface p-6">
-          <h2 className="text-lg font-semibold">Prediction inputs</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Prediction inputs</h2>
+            <SnqDialog />
+          </div>
           <div className="mt-4 space-y-4">
             <div>
               <Label htmlFor="rank">KCET Rank</Label>
@@ -244,8 +248,8 @@ function Dashboard() {
               {!allBranches && (
                 <>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Tick branches in order of preference — the order you click them is the order
-                    the predictor will prioritise (1st pick first).
+                    Tick branches in order of preference — the first branch you click
+                    gets the highest priority in the mixed recommendation list.
                   </p>
                   <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto rounded-md border border-border p-3">
                     {BRANCHES.map((b) => {
@@ -299,27 +303,30 @@ function Dashboard() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <BucketCard icon={Trophy} title="🏆 Top Colleges" count={result.top.length} tone="top" />
-                <BucketCard icon={Target} title="🎯 Expected Colleges" count={result.expected.length} tone="expected" />
-                <BucketCard icon={Rocket} title="✅ Sure-Shot Colleges" count={result.sureShot.length} tone="sure" />
-              </div>
-
+              {result.singleTop && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+                  <div className="flex items-center gap-2 font-semibold text-primary">
+                    <Trophy className="h-4 w-4" /> Top College for your rank
+                  </div>
+                  <p className="mt-1 text-muted-foreground">
+                    For ranks 1–300 we show only the single strongest college that matches
+                    your selected branch, district and category.
+                  </p>
+                </div>
+              )}
               <div className="rounded-2xl border border-border bg-surface">
                 <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-                  <div className="relative flex-1 min-w-[200px]">
+                  <div>
+                    <h3 className="text-lg font-semibold">Recommended Option Entry List</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {tableRows.length} colleges · sorted by counseling priority
+                    </p>
+                  </div>
+                  <div className="relative ml-auto min-w-[200px] flex-1 sm:max-w-xs">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input className="pl-8" placeholder="Search college or branch..."
                       value={search} onChange={(e) => setSearch(e.target.value)} />
                   </div>
-                  <Tabs value={bucketFilter} onValueChange={(v) => setBucketFilter(v as typeof bucketFilter)}>
-                    <TabsList>
-                      <TabsTrigger value="all">All</TabsTrigger>
-                      <TabsTrigger value="Top">Top</TabsTrigger>
-                      <TabsTrigger value="Expected">Expected</TabsTrigger>
-                      <TabsTrigger value="Sure-Shot">Sure</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
                   <Button variant="default" size="sm" onClick={pdf}>
                     <FileDown className="h-4 w-4 mr-1" /> Download PDF Report
                   </Button>
@@ -328,22 +335,23 @@ function Dashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12 text-center">S.No</TableHead>
                         <TableHead>College</TableHead>
                         <TableHead>Branch</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead className="text-right">R1 / R2</TableHead>
+                        <TableHead className="text-right">R1</TableHead>
+                        <TableHead className="text-right">R2</TableHead>
                         <TableHead>Probability</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {tableRows.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
+                          <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
                             No matching colleges. Try widening branches, category or district.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        tableRows.map((r, i) => <ResultRow key={i} r={r} />)
+                        tableRows.map((r, i) => <ResultRow key={`${r.college_code}-${r.branch_label}-${i}`} sno={i + 1} r={r} />)
                       )}
                     </TableBody>
                   </Table>
@@ -357,30 +365,13 @@ function Dashboard() {
   );
 }
 
-function BucketCard({ icon: Icon, title, count, tone }: {
-  icon: typeof Trophy; title: string; count: number; tone: "top" | "expected" | "sure";
-}) {
-  const toneClass =
-    tone === "top" ? "bg-accent border-accent text-accent-foreground"
-      : tone === "expected" ? "bg-primary/10 text-primary border-primary/30"
-        : "bg-emerald/10 text-emerald border-emerald/30";
-  return (
-    <div className="rounded-2xl border bg-surface p-5">
-      <div className={`inline-grid h-10 w-10 place-items-center rounded-lg ${toneClass}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="mt-3 text-2xl font-bold">{count}</div>
-      <div className="text-sm text-muted-foreground">{title}</div>
-    </div>
-  );
-}
-
-function ResultRow({ r }: { r: PredictionRow }) {
+function ResultRow({ sno, r }: { sno: number; r: PredictionRow }) {
   const tone = r.bucket === "Sure-Shot" ? "bg-emerald text-emerald-foreground"
     : r.bucket === "Expected" ? "bg-primary text-primary-foreground"
       : "bg-accent text-accent-foreground";
   return (
     <TableRow>
+      <TableCell className="text-center text-sm text-muted-foreground tabular-nums">{sno}</TableCell>
       <TableCell className="font-medium">
         <div className="line-clamp-2">{r.college_name}</div>
         <div className="text-xs text-muted-foreground flex items-center gap-1">
@@ -389,12 +380,99 @@ function ResultRow({ r }: { r: PredictionRow }) {
         </div>
       </TableCell>
       <TableCell className="text-sm">{r.branch_label || r.branch}</TableCell>
-      <TableCell><Badge variant="outline">{r.category}</Badge></TableCell>
       <TableCell className="text-right text-sm tabular-nums">
-        <div>R1: {r.round1_cutoff ?? "Not Available"}</div>
-        <div className="text-muted-foreground">R2: {r.round2_cutoff ?? "Not Available"}</div>
+        {r.round1_cutoff != null && r.round1_cutoff > 0 ? r.round1_cutoff : "Not Available"}
+      </TableCell>
+      <TableCell className="text-right text-sm tabular-nums">
+        {r.round2_cutoff != null && r.round2_cutoff > 0 ? r.round2_cutoff : "Not Available"}
       </TableCell>
       <TableCell><Badge className={tone}>{r.bucket} · {r.confidence}%</Badge></TableCell>
     </TableRow>
+  );
+}
+
+function SnqDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" type="button" className="gap-1.5">
+          <GraduationCap className="h-4 w-4" />
+          <span className="hidden sm:inline">Need SNQ Info?</span>
+          <span className="sm:hidden">SNQ</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            🎓 SNQ Quota Guide
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 text-sm leading-relaxed">
+          <section>
+            <h4 className="font-semibold text-foreground">What is SNQ?</h4>
+            <p className="mt-1 text-muted-foreground">
+              SNQ (Supernumerary Quota) is a special fee-concession quota available for
+              eligible Karnataka students admitted through KCET counseling. Students
+              admitted under SNQ pay significantly reduced tuition fees compared to
+              regular KCET fees.
+            </p>
+          </section>
+          <section>
+            <h4 className="font-semibold text-foreground">Eligibility Criteria</h4>
+            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
+              <li>Karnataka candidate</li>
+              <li>Admission through KCET counseling</li>
+              <li>Valid income certificate</li>
+              <li>Family income within KEA-prescribed limits</li>
+            </ul>
+          </section>
+          <section>
+            <h4 className="font-semibold text-foreground">Benefits</h4>
+            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
+              <li>Reduced tuition fees</li>
+              <li>Same college, same branch, same degree certificate</li>
+              <li>Same placement opportunities</li>
+              <li>Same campus facilities</li>
+            </ul>
+          </section>
+          <section>
+            <h4 className="font-semibold text-foreground">Required Documents</h4>
+            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
+              <li>Income Certificate</li>
+              <li>KCET Details</li>
+              <li>Aadhaar Card</li>
+              <li>Study Certificates</li>
+              <li>Caste Certificate (if applicable)</li>
+            </ul>
+          </section>
+          <section>
+            <h4 className="font-semibold text-foreground">Important Points</h4>
+            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
+              <li>SNQ seats are limited</li>
+              <li>Approximately 5% seats per branch</li>
+              <li>Eligibility does not guarantee allotment</li>
+              <li>Seat allotment depends on rank, category, branch preference, option entry, and seat availability</li>
+            </ul>
+          </section>
+          <section>
+            <h4 className="font-semibold text-foreground">Does Every College Have SNQ Seats?</h4>
+            <p className="mt-1 text-muted-foreground">
+              Most participating colleges provide SNQ seats, but availability varies by
+              college and branch.
+            </p>
+          </section>
+          <section className="rounded-md border border-primary/20 bg-primary/5 p-3">
+            <h4 className="flex items-center gap-1.5 font-semibold text-primary">
+              <Info className="h-4 w-4" /> Important Notice
+            </h4>
+            <p className="mt-1 text-muted-foreground">
+              This information is provided only for guidance. Students must verify
+              eligibility, income limits, seat availability, fee structure, documents,
+              and counseling rules through official KEA notifications.
+            </p>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
