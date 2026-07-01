@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, MapPin, School, Target } from "lucide-react";
+import { Loader2, MapPin, School, Target, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/college-chances")({
   head: () => ({ meta: [{ title: "College & Branch Chances — KCET - College & Course Predictor" }] }),
@@ -143,40 +143,62 @@ function CollegeChances() {
         <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
           <div>
             <Label>Search college (name or code)</Label>
-            <Input
-              placeholder={loadingList ? "Loading colleges..." : "e.g. RV, BMS, E005, Siddaganga"}
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setPicked(null); }}
-            />
-            {!picked && (
-              <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border">
-                {loadingList ? (
-                  <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading {colleges.length || ""} colleges...
+            {picked ? (
+              <div className="mt-1 flex items-start justify-between gap-2 rounded-md border border-primary bg-primary/5 p-3">
+                <div className="min-w-0 text-sm">
+                  <div className="font-medium line-clamp-2">{picked.name}</div>
+                  <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    {picked.code}
+                    {picked.district && <><span>·</span><MapPin className="h-3 w-3" />{picked.district}</>}
                   </div>
-                ) : filtered.length ? (
-                  filtered.map((c) => (
-                    <button key={c.code} type="button"
-                      className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
-                      onClick={() => { setPicked(c); setQuery(c.name); }}>
-                      <div className="font-medium line-clamp-1">{c.name}</div>
-                      <div className="text-xs text-muted-foreground">{c.code}{c.district && ` • ${c.district}`}</div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="p-3 text-sm text-muted-foreground">No matches</div>
-                )}
-              </div>
-            )}
-            {picked && (
-              <div className="mt-2 rounded-md border border-primary bg-primary/5 p-3 text-sm">
-                <div className="font-medium">{picked.name}</div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  {picked.code}{picked.district && <><span>·</span><MapPin className="h-3 w-3" />{picked.district}</>}
                 </div>
+                <button
+                  type="button"
+                  aria-label="Remove selected college"
+                  onClick={() => {
+                    setPicked(null);
+                    setRows(null);
+                    setQuery("");
+                    setTimeout(() => {
+                      document.getElementById("college-search-input")?.focus();
+                    }, 0);
+                  }}
+                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
+            ) : (
+              <>
+                <Input
+                  id="college-search-input"
+                  autoFocus
+                  placeholder={loadingList ? "Loading colleges..." : "e.g. RV, BMS, E005, Siddaganga"}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border">
+                  {loadingList ? (
+                    <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading {colleges.length || ""} colleges...
+                    </div>
+                  ) : filtered.length ? (
+                    filtered.map((c) => (
+                      <button key={c.code} type="button"
+                        className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                        onClick={() => { setPicked(c); setQuery(c.name); }}>
+                        <div className="font-medium line-clamp-1">{c.name}</div>
+                        <div className="text-xs text-muted-foreground">{c.code}{c.district && ` • ${c.district}`}</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-3 text-sm text-muted-foreground">No matches</div>
+                  )}
+                </div>
+              </>
             )}
           </div>
+
           <div>
             <Label>KCET Rank</Label>
             <Input inputMode="numeric" value={rank} onChange={(e) => setRank(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 8000" />
