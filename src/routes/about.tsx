@@ -71,7 +71,14 @@ function About() {
                 @pavan_aradhya___
               </a>
             </div>
+            <div className="rounded-xl border border-border p-4 sm:col-span-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <MapPin className="h-4 w-4" /> Location
+              </div>
+              <div className="mt-1 font-semibold">Tumakuru, Karnataka, India</div>
+            </div>
           </div>
+
         </div>
       </section>
       <SiteFooter />
