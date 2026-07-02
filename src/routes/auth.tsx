@@ -130,11 +130,13 @@ function AuthPage() {
               onCheckedChange={(v) => setAgreed(!!v)}
               className="mt-0.5"
             />
-            <label htmlFor="terms" className="cursor-pointer text-sm leading-snug">
-              I have read and agree to the{" "}
+            <div className="text-sm leading-snug">
+              <label htmlFor="terms" className="cursor-pointer">
+                I have read and agree to the{" "}
+              </label>
               <TermsDialog />
-              .
-            </label>
+              <label htmlFor="terms" className="cursor-pointer">.</label>
+            </div>
           </div>
 
           <Button
