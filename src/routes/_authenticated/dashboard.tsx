@@ -150,7 +150,7 @@ function Dashboard() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
         <div className="rounded-2xl border border-border bg-surface p-6">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">Prediction inputs</h2>
+            <h2 className="text-lg font-semibold">Prediction</h2>
             <SnqDialog />
           </div>
           <div className="mt-4 space-y-4">
