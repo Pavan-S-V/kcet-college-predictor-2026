@@ -1,0 +1,1 @@
+ALTER TABLE public.chat_messages ADD CONSTRAINT chat_messages_role_check CHECK (role IN ('user', 'assistant'));
