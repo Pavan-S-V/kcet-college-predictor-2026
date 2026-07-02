@@ -150,7 +150,7 @@ function Dashboard() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
         <div className="rounded-2xl border border-border bg-surface p-6">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">Prediction inputs</h2>
+            <h2 className="text-lg font-semibold">Prediction</h2>
             <SnqDialog />
           </div>
           <div className="mt-4 space-y-4">
@@ -303,17 +303,6 @@ function Dashboard() {
             </div>
           ) : (
             <div className="space-y-6">
-              {result.singleTop && (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-                  <div className="flex items-center gap-2 font-semibold text-primary">
-                    <Trophy className="h-4 w-4" /> Top College for your rank
-                  </div>
-                  <p className="mt-1 text-muted-foreground">
-                    For ranks 1–300 we show only the single strongest college that matches
-                    your selected branch, district and category.
-                  </p>
-                </div>
-              )}
               <div className="rounded-2xl border border-border bg-surface">
                 <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
                   <div>
