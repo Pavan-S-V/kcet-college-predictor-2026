@@ -144,8 +144,18 @@ function Dashboard() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="rounded-2xl bg-hero-gradient p-6 text-white shadow-elegant sm:p-8">
-        <h1 className="text-2xl font-bold sm:text-3xl">Hello Future Engineer, {name}! 👋</h1>
-        <p className="mt-1 text-white/85">Let's Find Your Dream College and Course</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold sm:text-3xl">Hello Future Engineer, {name}! 👋</h1>
+            <p className="mt-1 text-white/85">Let's Find Your Dream College and Course</p>
+          </div>
+          <Link
+            to="/history"
+            className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/25 transition"
+          >
+            📊 Prediction History
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
