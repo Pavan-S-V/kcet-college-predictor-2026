@@ -102,7 +102,8 @@ function Dashboard() {
       if (user) {
         await supabase.from("predictions").insert({
           user_id: user.id, rank: r, category, mode: "balanced", branches,
-          results: res.all.slice(0, 50) as never,
+          districts,
+          results: (res.recommended && res.recommended.length ? res.recommended : res.all) as never,
         });
       }
     } catch (e) {
