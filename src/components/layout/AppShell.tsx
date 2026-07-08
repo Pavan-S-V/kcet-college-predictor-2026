@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  GraduationCap, Home, LayoutDashboard, Target, User as UserIcon, LogOut,
+  GraduationCap, Home, LayoutDashboard, Target, User as UserIcon, LogOut, History,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/dashboard", label: "Predict College", icon: LayoutDashboard },
   { to: "/college-chances", label: "College & Branch Chances", icon: Target },
+  { to: "/history", label: "History", icon: History },
   { to: "/about", label: "About", icon: UserIcon },
 ] as const;
 

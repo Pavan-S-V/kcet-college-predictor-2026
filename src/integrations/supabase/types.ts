@@ -132,6 +132,7 @@ export type Database = {
           branches: string[]
           category: string
           created_at: string
+          districts: string[]
           id: string
           mode: string
           rank: number
@@ -142,6 +143,7 @@ export type Database = {
           branches: string[]
           category: string
           created_at?: string
+          districts?: string[]
           id?: string
           mode: string
           rank: number
@@ -152,6 +154,7 @@ export type Database = {
           branches?: string[]
           category?: string
           created_at?: string
+          districts?: string[]
           id?: string
           mode?: string
           rank?: number
