@@ -1,0 +1,2 @@
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS districts text[] NOT NULL DEFAULT '{}'::text[];
+CREATE INDEX IF NOT EXISTS predictions_user_created_idx ON public.predictions (user_id, created_at DESC);
