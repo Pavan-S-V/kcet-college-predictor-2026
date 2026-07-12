@@ -408,69 +408,39 @@ function SnqDialog() {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 text-sm leading-relaxed">
+          <p className="text-muted-foreground">
+            SNQ (Supernumerary Quota) is a fee-concession quota for eligible Karnataka students admitted through KCET.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex items-center gap-2 text-foreground">
+              <span className="text-emerald-500">✅</span>
+              <span>Lower tuition fees</span>
+            </div>
+            <div className="flex items-center gap-2 text-foreground">
+              <span className="text-emerald-500">✅</span>
+              <span>Same college, branch, degree, placements, and facilities</span>
+            </div>
+          </div>
           <section>
-            <h4 className="font-semibold text-foreground">What is SNQ?</h4>
-            <p className="mt-1 text-muted-foreground">
-              SNQ (Supernumerary Quota) is a special fee-concession quota available for
-              eligible Karnataka students admitted through KCET counseling. Students
-              admitted under SNQ pay significantly reduced tuition fees compared to
-              regular KCET fees.
-            </p>
-          </section>
-          <section>
-            <h4 className="font-semibold text-foreground">Eligibility Criteria</h4>
+            <h4 className="font-semibold text-foreground">Eligibility</h4>
             <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
               <li>Karnataka candidate</li>
-              <li>Admission through KCET counseling</li>
+              <li>KCET admission</li>
               <li>Valid income certificate</li>
-              <li>Family income within KEA-prescribed limits</li>
+              <li>Income within KEA limits</li>
             </ul>
-          </section>
-          <section>
-            <h4 className="font-semibold text-foreground">Benefits</h4>
-            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
-              <li>Reduced tuition fees</li>
-              <li>Same college, same branch, same degree certificate</li>
-              <li>Same placement opportunities</li>
-              <li>Same campus facilities</li>
-            </ul>
-          </section>
-          <section>
-            <h4 className="font-semibold text-foreground">Required Documents</h4>
-            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
-              <li>Income Certificate</li>
-              <li>KCET Details</li>
-              <li>Aadhaar Card</li>
-              <li>Study Certificates</li>
-              <li>Caste Certificate (if applicable)</li>
-            </ul>
-          </section>
-          <section>
-            <h4 className="font-semibold text-foreground">Important Points</h4>
-            <ul className="mt-1 list-disc pl-5 text-muted-foreground space-y-0.5">
-              <li>SNQ seats are limited</li>
-              <li>Approximately 5% seats per branch</li>
-              <li>Eligibility does not guarantee allotment</li>
-              <li>Seat allotment depends on rank, category, branch preference, option entry, and seat availability</li>
-            </ul>
-          </section>
-          <section>
-            <h4 className="font-semibold text-foreground">Does Every College Have SNQ Seats?</h4>
-            <p className="mt-1 text-muted-foreground">
-              Most participating colleges provide SNQ seats, but availability varies by
-              college and branch.
-            </p>
           </section>
           <section className="rounded-md border border-primary/20 bg-primary/5 p-3">
             <h4 className="flex items-center gap-1.5 font-semibold text-primary">
-              <Info className="h-4 w-4" /> Important Notice
+              <Info className="h-4 w-4" /> Note
             </h4>
             <p className="mt-1 text-muted-foreground">
-              This information is provided only for guidance. Students must verify
-              eligibility, income limits, seat availability, fee structure, documents,
-              and counseling rules through official KEA notifications.
+              SNQ seats are limited and allotment depends on rank, eligibility, option entry, and seat availability.
             </p>
           </section>
+          <p className="text-xs text-muted-foreground">
+            📌 Verify all details through official KEA notifications.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
