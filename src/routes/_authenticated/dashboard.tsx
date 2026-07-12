@@ -151,9 +151,11 @@ function Dashboard() {
           </div>
           <Link
             to="/history"
-            className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/25 transition"
+            className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/25 ring-1 ring-white/20 backdrop-blur transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-pink-500/40 hover:ring-white/40"
           >
-            📊 Prediction History
+            <History className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+            <span>📊 Prediction History</span>
+            <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
           </Link>
         </div>
       </div>
