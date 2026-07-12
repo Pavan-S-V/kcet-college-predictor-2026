@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Sparkles, Trophy, FileDown, MapPin, ChevronsUpDown, X, GraduationCap, Info, History } from "lucide-react";
+import { Loader2, Search, Sparkles, Trophy, FileDown, MapPin, ChevronsUpDown, X, GraduationCap, Info, History, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Predict College — KCET" }] }),
