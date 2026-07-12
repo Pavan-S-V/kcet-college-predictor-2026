@@ -131,7 +131,12 @@ function HistoryPage() {
       <div className="rounded-2xl bg-hero-gradient p-6 text-white shadow-elegant sm:p-8">
         <div className="flex items-center gap-3">
           <HistoryIcon className="h-7 w-7" />
-          <h1 className="text-2xl font-bold sm:text-3xl">📊 Prediction History</h1>
+          <div>
+            <h1 className="text-2xl font-bold sm:text-3xl">📊 Prediction History</h1>
+            <p className="mt-1 text-white/85 text-sm">
+              Every prediction you generate is saved here — search, filter, review, or export any time.
+            </p>
+          </div>
         </div>
       </div>
 
