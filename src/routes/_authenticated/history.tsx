@@ -96,7 +96,7 @@ function HistoryPage() {
           <div>
             <h1 className="text-2xl font-bold sm:text-3xl">📊 Prediction History</h1>
             <p className="mt-1 text-white/85 text-sm">
-              Every prediction you generate is saved here — search, filter, review, or export any time.
+              Every prediction you generate is saved here — review or export any time.
             </p>
           </div>
         </div>
