@@ -1,14 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { BRANCHES, CATEGORIES, type Category } from "@/lib/kcet-constants";
 import { downloadPredictionPdf, type PredictionResult, type PredictionRow } from "@/lib/predictor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,7 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Loader2, Search, Eye, Trash2, FileDown, History as HistoryIcon, MapPin } from "lucide-react";
+import { Loader2, Eye, Trash2, FileDown, History as HistoryIcon, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({ meta: [{ title: "Prediction History — KCET" }] }),
