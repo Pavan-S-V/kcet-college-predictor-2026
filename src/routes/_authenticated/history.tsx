@@ -1,14 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { BRANCHES, CATEGORIES, type Category } from "@/lib/kcet-constants";
 import { downloadPredictionPdf, type PredictionResult, type PredictionRow } from "@/lib/predictor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,7 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Loader2, Search, Eye, Trash2, FileDown, History as HistoryIcon, MapPin } from "lucide-react";
+import { Loader2, Eye, Trash2, FileDown, History as HistoryIcon, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({ meta: [{ title: "Prediction History — KCET" }] }),
@@ -42,11 +38,6 @@ function HistoryPage() {
   const name = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student";
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<PredictionRecord[]>([]);
-  const [search, setSearch] = useState("");
-  const [branchFilter, setBranchFilter] = useState<string>("__all__");
-  const [categoryFilter, setCategoryFilter] = useState<string>("__all__");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
   const [viewing, setViewing] = useState<PredictionRecord | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -75,30 +66,6 @@ function HistoryPage() {
     if (user) load();
   }, [user]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const from = fromDate ? new Date(fromDate).getTime() : null;
-    const to = toDate ? new Date(toDate).getTime() + 86_400_000 : null;
-    return rows.filter((r) => {
-      if (categoryFilter !== "__all__" && r.category !== categoryFilter) return false;
-      if (branchFilter !== "__all__") {
-        const has = r.branches.includes(branchFilter) || r.branches.includes("__all__");
-        if (!has) return false;
-      }
-      const t = new Date(r.created_at).getTime();
-      if (from != null && t < from) return false;
-      if (to != null && t >= to) return false;
-      if (q) {
-        const inRank = String(r.rank).includes(q);
-        const inCat = r.category.toLowerCase().includes(q);
-        const inBranch = r.branches.some((b) => b.toLowerCase().includes(q));
-        const inCollege = r.results.some((row) => row.college_name?.toLowerCase().includes(q));
-        if (!inRank && !inCat && !inBranch && !inCollege) return false;
-      }
-      return true;
-    });
-  }, [rows, search, branchFilter, categoryFilter, fromDate, toDate]);
-
   async function doDelete(id: string) {
     const { error } = await supabase.from("predictions").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -121,11 +88,6 @@ function HistoryPage() {
     });
   }
 
-  function resetFilters() {
-    setSearch(""); setBranchFilter("__all__"); setCategoryFilter("__all__");
-    setFromDate(""); setToDate("");
-  }
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="rounded-2xl bg-hero-gradient p-6 text-white shadow-elegant sm:p-8">
@@ -134,66 +96,13 @@ function HistoryPage() {
           <div>
             <h1 className="text-2xl font-bold sm:text-3xl">📊 Prediction History</h1>
             <p className="mt-1 text-white/85 text-sm">
-              Every prediction you generate is saved here — search, filter, review, or export any time.
+              Every prediction you generate is saved here — review or export any time.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border bg-surface p-4 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <Label>Search</Label>
-            <div className="relative mt-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="Rank, branch, category or college..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Branch</Label>
-            <Select value={branchFilter} onValueChange={setBranchFilter}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All branches</SelectItem>
-                {BRANCHES.map((b) => <SelectItem key={b.label} value={b.label}>{b.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Category</Label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All categories</SelectItem>
-                {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">From</Label>
-              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <Label className="text-xs">To</Label>
-              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="mt-1" />
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-          <span>{filtered.length} of {rows.length} predictions</span>
-          <button type="button" onClick={resetFilters} className="text-primary hover:underline">
-            Reset filters
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-border bg-surface">
+      <div className="mt-4 rounded-2xl border border-border bg-surface">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" /> Loading history...
@@ -205,10 +114,6 @@ function HistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Generate your first prediction to see it here.
             </p>
-          </div>
-        ) : !filtered.length ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">
-            No predictions match your filters.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -224,7 +129,7 @@ function HistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => {
+                {rows.map((r) => {
                   const branchList = r.branches.includes("__all__")
                     ? ["All branches"]
                     : r.branches;
