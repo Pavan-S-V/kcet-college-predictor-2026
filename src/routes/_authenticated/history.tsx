@@ -38,11 +38,6 @@ function HistoryPage() {
   const name = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student";
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<PredictionRecord[]>([]);
-  const [search, setSearch] = useState("");
-  const [branchFilter, setBranchFilter] = useState<string>("__all__");
-  const [categoryFilter, setCategoryFilter] = useState<string>("__all__");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
   const [viewing, setViewing] = useState<PredictionRecord | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
