@@ -129,7 +129,7 @@ function HistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => {
+                {rows.map((r) => {
                   const branchList = r.branches.includes("__all__")
                     ? ["All branches"]
                     : r.branches;
