@@ -66,30 +66,6 @@ function HistoryPage() {
     if (user) load();
   }, [user]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const from = fromDate ? new Date(fromDate).getTime() : null;
-    const to = toDate ? new Date(toDate).getTime() + 86_400_000 : null;
-    return rows.filter((r) => {
-      if (categoryFilter !== "__all__" && r.category !== categoryFilter) return false;
-      if (branchFilter !== "__all__") {
-        const has = r.branches.includes(branchFilter) || r.branches.includes("__all__");
-        if (!has) return false;
-      }
-      const t = new Date(r.created_at).getTime();
-      if (from != null && t < from) return false;
-      if (to != null && t >= to) return false;
-      if (q) {
-        const inRank = String(r.rank).includes(q);
-        const inCat = r.category.toLowerCase().includes(q);
-        const inBranch = r.branches.some((b) => b.toLowerCase().includes(q));
-        const inCollege = r.results.some((row) => row.college_name?.toLowerCase().includes(q));
-        if (!inRank && !inCat && !inBranch && !inCollege) return false;
-      }
-      return true;
-    });
-  }, [rows, search, branchFilter, categoryFilter, fromDate, toDate]);
-
   async function doDelete(id: string) {
     const { error } = await supabase.from("predictions").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -110,11 +86,6 @@ function HistoryPage() {
       branches: rec.branches.filter((b) => b !== "__all__"),
       districts: rec.districts,
     });
-  }
-
-  function resetFilters() {
-    setSearch(""); setBranchFilter("__all__"); setCategoryFilter("__all__");
-    setFromDate(""); setToDate("");
   }
 
   return (
