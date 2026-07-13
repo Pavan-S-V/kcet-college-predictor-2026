@@ -102,60 +102,7 @@ function HistoryPage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border bg-surface p-4 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <Label>Search</Label>
-            <div className="relative mt-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="Rank, branch, category or college..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Branch</Label>
-            <Select value={branchFilter} onValueChange={setBranchFilter}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All branches</SelectItem>
-                {BRANCHES.map((b) => <SelectItem key={b.label} value={b.label}>{b.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Category</Label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All categories</SelectItem>
-                {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">From</Label>
-              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <Label className="text-xs">To</Label>
-              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="mt-1" />
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-          <span>{filtered.length} of {rows.length} predictions</span>
-          <button type="button" onClick={resetFilters} className="text-primary hover:underline">
-            Reset filters
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-border bg-surface">
+      <div className="mt-4 rounded-2xl border border-border bg-surface">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" /> Loading history...
@@ -167,10 +114,6 @@ function HistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Generate your first prediction to see it here.
             </p>
-          </div>
-        ) : !filtered.length ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">
-            No predictions match your filters.
           </div>
         ) : (
           <div className="overflow-x-auto">
