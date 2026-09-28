@@ -127,7 +127,18 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((e) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((e, session) => {
+      if (session?.user) {
+        const key = `login-logged-${session.user.id}`;
+        const last = Number(localStorage.getItem(key) || 0);
+        if (Date.now() - last > 10 * 60 * 1000) {
+          localStorage.setItem(key, String(Date.now()));
+          void supabase.from("login_activity" as any).insert({
+            user_id: session.user.id,
+            provider: session.user.app_metadata?.provider ?? "email",
+          } as any);
+        }
+      }
       if (e === "SIGNED_IN" || e === "SIGNED_OUT" || e === "USER_UPDATED") {
         router.invalidate();
         if (e !== "SIGNED_OUT") queryClient.invalidateQueries();
