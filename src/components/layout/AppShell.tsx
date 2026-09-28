@@ -6,6 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { checkIsAdmin } from "@/lib/admin.functions";
+import { ShieldCheck } from "lucide-react";
 
 const NAV = [
   { to: "/dashboard", label: "Predict College", icon: LayoutDashboard },
@@ -17,6 +21,8 @@ const NAV = [
 export function AppShell() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isAdminFn = useServerFn(checkIsAdmin);
+  const { data: adminData } = useQuery({ queryKey: ["is-admin", user?.id], queryFn: () => isAdminFn(), enabled: !!user });
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   async function signOut() {
@@ -59,6 +65,11 @@ export function AppShell() {
             })}
           </nav>
           <div className="flex items-center gap-2">
+            {adminData?.isAdmin && (
+              <Link to="/admin" className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted">
+                <ShieldCheck className="h-4 w-4" /> Admin
+              </Link>
+            )}
             <span className="hidden text-sm text-muted-foreground sm:inline">
               {user?.user_metadata?.full_name || user?.email}
             </span>
