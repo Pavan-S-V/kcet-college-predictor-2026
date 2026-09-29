@@ -57,11 +57,25 @@ function About() {
                 pavansv122@gmail.com
               </a>
             </div>
+            <div className="rounded-xl border border-border p-4 sm:col-span-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <Instagram className="h-4 w-4" /> Instagram
+              </div>
+              <a
+                href="https://www.instagram.com/pavan_aradhya___/?hl=en"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex items-center gap-2 font-semibold cursor-pointer hover:text-primary hover:underline transition-colors"
+              >
+                <Instagram className="h-4 w-4" />
+                @pavan_aradhya___
+              </a>
+            </div>
             <a
               href="https://www.linkedin.com/in/pavan-s-v-b53172425"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl border border-border p-4 sm:col-span-2 block cursor-pointer transition-colors hover:border-primary/50 hover:bg-accent/40 sm:col-span-2"
+              className="rounded-xl border border-border p-4 sm:col-span-2 block cursor-pointer transition-colors hover:border-primary/50 hover:bg-accent/40"
             >
               <div className="flex items-center gap-2 text-sm font-medium text-primary">
                 <Linkedin className="h-4 w-4" /> LinkedIn
