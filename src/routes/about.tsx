@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Mail, GraduationCap, MapPin, Instagram } from "lucide-react";
+import { Mail, GraduationCap, MapPin, Instagram, Linkedin } from "lucide-react";
 import { PublicNav, SiteFooter } from "@/components/layout/PublicNav";
 import pavanPhoto from "@/assets/pavan.jpeg.asset.json";
 
