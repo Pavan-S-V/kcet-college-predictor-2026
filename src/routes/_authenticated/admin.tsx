@@ -6,6 +6,8 @@ import { Users, UserCheck, TrendingUp, Clock, Activity, ShieldAlert } from "luci
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getAdminAnalytics } from "@/lib/admin.functions";
+import { syncAllUsers } from "@/lib/ext-sync.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -23,6 +25,8 @@ const DAY = 86400000;
 
 function AdminPage() {
   const fetchData = useServerFn(getAdminAnalytics);
+  const syncAll = useServerFn(syncAllUsers);
+  const [syncing, setSyncing] = useState(false);
   const q = useQuery({ queryKey: ["admin-analytics"], queryFn: () => fetchData(), retry: false });
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"created" | "login">("login");
@@ -62,7 +66,15 @@ function AdminPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-bold">Admin Analytics</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Admin Analytics</h1>
+        <Button size="sm" disabled={syncing} onClick={async () => {
+          setSyncing(true);
+          try { const r = await syncAll(); toast.success(`Synced ${r.synced} users to your project`); }
+          catch (e) { toast.error(e instanceof Error ? e.message : "Sync failed"); }
+          finally { setSyncing(false); }
+        }}>{syncing ? "Syncing…" : "Sync all users"}</Button>
+      </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => (
           <div key={c.label} className="rounded-xl border border-border bg-card p-4">

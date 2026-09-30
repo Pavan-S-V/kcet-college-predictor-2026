@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { syncMe } from "@/lib/ext-sync.functions";
 import { Loader2, Search, Sparkles, Trophy, FileDown, MapPin, ChevronsUpDown, X, GraduationCap, Info } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -105,6 +106,7 @@ function Dashboard() {
           districts,
           results: (res.recommended && res.recommended.length ? res.recommended : res.all) as never,
         });
+        void syncMe({ data: { login: false } }).catch(() => {});
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Prediction failed");
