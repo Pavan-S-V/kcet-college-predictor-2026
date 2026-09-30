@@ -81,7 +81,7 @@ function AdminPage() {
       <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left">
-            <tr>{["Name", "Email", "Provider", "Registered", "Last Login"].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
+            <tr>{["Name", "Email", "Provider", "Registered", "Last Login", "Predictions", "Last Prediction"].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((u) => (
@@ -91,9 +91,30 @@ function AdminPage() {
                 <td className="px-4 py-3 capitalize">{u.provider}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmt(u.created_at)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmt(u.last_sign_in_at)}</td>
+                <td className="px-4 py-3">{u.prediction_count}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{fmt(u.last_prediction_at)}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No users found</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No users found</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <h2 className="mt-10 text-lg font-semibold">Login Activity <span className="text-sm font-normal text-muted-foreground">(latest 200 · {q.data!.totalPredictions} predictions total)</span></h2>
+      <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead className="bg-muted text-left">
+            <tr>{["Name", "Email", "Provider", "Logged in at"].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {q.data!.logins.map((l, i) => (
+              <tr key={i} className="border-t border-border">
+                <td className="px-4 py-3">{l.name || "—"}</td>
+                <td className="px-4 py-3">{l.email || "—"}</td>
+                <td className="px-4 py-3 capitalize">{l.provider}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{fmt(l.at)}</td>
+              </tr>
+            ))}
+            {q.data!.logins.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">No logins recorded yet</td></tr>}
           </tbody>
         </table>
       </div>

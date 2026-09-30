@@ -28,15 +28,38 @@ export const getAdminAnalytics = createServerFn({ method: "GET" })
     const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const { data: active } = await supabaseAdmin
       .from("login_activity").select("user_id").gte("logged_in_at", since);
+    const { data: logins } = await supabaseAdmin
+      .from("login_activity").select("user_id, provider, logged_in_at")
+      .order("logged_in_at", { ascending: false }).limit(200);
+    const { data: preds } = await supabaseAdmin
+      .from("predictions").select("user_id, created_at").limit(100000);
+    const pc = new Map<string, { count: number; last: string }>();
+    for (const p of preds ?? []) {
+      const e = pc.get(p.user_id) ?? { count: 0, last: "" };
+      e.count++; if (p.created_at > e.last) e.last = p.created_at;
+      pc.set(p.user_id, e);
+    }
+    const mapped = users.map((u) => ({
+      id: u.id,
+      name: (u.user_metadata?.full_name || u.user_metadata?.name || "") as string,
+      email: u.email ?? "",
+      provider: (u.app_metadata?.provider || "email") as string,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at ?? null,
+      prediction_count: pc.get(u.id)?.count ?? 0,
+      last_prediction_at: pc.get(u.id)?.last || null,
+    }));
+    const byId = new Map(mapped.map((u) => [u.id, u]));
     return {
       activeUsers: new Set((active ?? []).map((r) => r.user_id)).size,
-      users: users.map((u) => ({
-        id: u.id,
-        name: (u.user_metadata?.full_name || u.user_metadata?.name || "") as string,
-        email: u.email ?? "",
-        provider: (u.app_metadata?.provider || "email") as string,
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at ?? null,
+      totalPredictions: preds?.length ?? 0,
+      logins: (logins ?? []).map((l) => ({
+        user_id: l.user_id,
+        name: byId.get(l.user_id)?.name ?? "",
+        email: byId.get(l.user_id)?.email ?? "",
+        provider: l.provider ?? "email",
+        at: l.logged_in_at,
       })),
+      users: mapped,
     };
   });
