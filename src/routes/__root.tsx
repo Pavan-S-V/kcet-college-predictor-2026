@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { syncMe } from "@/lib/ext-sync.functions";
 
 function NotFoundComponent() {
   return (
@@ -137,6 +138,7 @@ function RootComponent() {
             user_id: session.user.id,
             provider: session.user.app_metadata?.provider ?? "email",
           } as any);
+          void syncMe({ data: { login: true } }).catch(() => {});
         }
       }
       if (e === "SIGNED_IN" || e === "SIGNED_OUT" || e === "USER_UPDATED") {
