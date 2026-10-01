@@ -70,7 +70,7 @@ function AdminPage() {
         <h1 className="text-2xl font-bold">Admin Analytics</h1>
         <Button size="sm" disabled={syncing} onClick={async () => {
           setSyncing(true);
-          try { const r = await syncAll(); toast.success(`Synced ${r.synced} users to your project`); }
+          try { const r = await syncAll(); toast.success(`Synced ${r.synced} users and ${r.logins} recent logins`); }
           catch (e) { toast.error(e instanceof Error ? e.message : "Sync failed"); }
           finally { setSyncing(false); }
         }}>{syncing ? "Syncing…" : "Sync all users"}</Button>
