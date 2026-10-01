@@ -10,11 +10,14 @@ type Row = {
   last_prediction_at?: string | null;
 };
 
+// The project URL is public (not a secret). The real project ref is
+// "ngyxppscabebkgerohzj"; the "...kgqrohzi" spelling does not exist (Cloudflare 1016).
+const EXT_URL = "https://ngyxppscabebkgerohzj.supabase.co";
+
 function cfg() {
-  const url = process.env["EXT_SUPABASE_URL"];
   const key = process.env["EXT_SUPABASE_SECRET_KEY"];
-  if (!url || !key) throw new Error("External project not configured");
-  return { url: url.replace(/\/$/, ""), key };
+  if (!key) throw new Error("External project key not configured");
+  return { url: EXT_URL, key };
 }
 
 async function post(path: string, body: unknown, prefer: string) {
@@ -29,6 +32,10 @@ export async function upsertUsers(rows: Row[]) {
   for (let i = 0; i < rows.length; i += 500) {
     await post("user_analytics?on_conflict=external_user_id", rows.slice(i, i + 500), "resolution=merge-duplicates,return=minimal");
   }
+}
+
+export async function insertLogins(rows: { external_user_id: string; email: string | null; login_provider: string | null; logged_in_at: string }[]) {
+  for (let i = 0; i < rows.length; i += 500) await post("login_activity", rows.slice(i, i + 500), "return=minimal");
 }
 
 export async function logLogin(external_user_id: string, email: string | null, provider: string | null) {

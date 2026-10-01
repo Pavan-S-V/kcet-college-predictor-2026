@@ -41,7 +41,7 @@ export const syncAllUsers = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { upsertUsers } = await import("./ext-sync.server");
+    const { upsertUsers, insertLogins } = await import("./ext-sync.server");
     const users: any[] = [];
     for (let page = 1; page < 50; page++) {
       const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
@@ -66,5 +66,19 @@ export const syncAllUsers = createServerFn({ method: "POST" })
       prediction_count: pc.get(u.id)?.count ?? 0,
       last_prediction_at: pc.get(u.id)?.last || null,
     })));
-    return { synced: users.length };
+    // Login history: only send rows newer than what the external table already has is not known,
+    // so send logins from the last 24h to avoid large duplicates on repeated clicks.
+    const since = new Date(Date.now() - 86400000).toISOString();
+    const { data: logins } = await supabaseAdmin.from("login_activity")
+      .select("user_id, provider, logged_in_at").gte("logged_in_at", since).limit(5000);
+    const emails = new Map(users.map((u) => [u.id, u.email ?? null]));
+    let loginCount = 0;
+    if (logins?.length) {
+      await insertLogins(logins.map((l) => ({
+        external_user_id: l.user_id, email: emails.get(l.user_id) ?? null,
+        login_provider: l.provider ?? "email", logged_in_at: l.logged_in_at,
+      })));
+      loginCount = logins.length;
+    }
+    return { synced: users.length, logins: loginCount };
   });
