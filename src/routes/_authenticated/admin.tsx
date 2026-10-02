@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getAdminAnalytics } from "@/lib/admin.functions";
 import { syncAllUsers } from "@/lib/ext-sync.functions";
 import { toast } from "sonner";
+import { VerificationReport } from "@/components/admin/VerificationReport";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -130,6 +131,7 @@ function AdminPage() {
           </tbody>
         </table>
       </div>
+      <VerificationReport />
     </div>
   );
 }

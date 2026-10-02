@@ -9,12 +9,13 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { checkIsAdmin } from "@/lib/admin.functions";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Sparkles } from "lucide-react";
 
 const NAV = [
   { to: "/dashboard", label: "Predict College", icon: LayoutDashboard },
   { to: "/college-chances", label: "College & Branch Chances", icon: Target },
   { to: "/history", label: "History", icon: History },
+  { to: "/ai-advisor", label: "AI Advisor", icon: Sparkles },
   { to: "/about", label: "About", icon: UserIcon },
 ] as const;
 

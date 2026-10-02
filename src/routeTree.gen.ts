@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCollegeChancesRouteImport } from './routes/_authenticated/college-chances'
+import { Route as AuthenticatedAiAdvisorRouteImport } from './routes/_authenticated/ai-advisor'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const AuthRoute = AuthRouteImport.update({
@@ -53,6 +54,11 @@ const AuthenticatedCollegeChancesRoute =
     path: '/college-chances',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAiAdvisorRoute = AuthenticatedAiAdvisorRouteImport.update({
+  id: '/ai-advisor',
+  path: '/ai-advisor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/ai-advisor': typeof AuthenticatedAiAdvisorRoute
   '/college-chances': typeof AuthenticatedCollegeChancesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/ai-advisor': typeof AuthenticatedAiAdvisorRoute
   '/college-chances': typeof AuthenticatedCollegeChancesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/ai-advisor': typeof AuthenticatedAiAdvisorRoute
   '/_authenticated/college-chances': typeof AuthenticatedCollegeChancesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/admin'
+    | '/ai-advisor'
     | '/college-chances'
     | '/dashboard'
     | '/history'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/admin'
+    | '/ai-advisor'
     | '/college-chances'
     | '/dashboard'
     | '/history'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/_authenticated/admin'
+    | '/_authenticated/ai-advisor'
     | '/_authenticated/college-chances'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
@@ -177,6 +189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCollegeChancesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ai-advisor': {
+      id: '/_authenticated/ai-advisor'
+      path: '/ai-advisor'
+      fullPath: '/ai-advisor'
+      preLoaderRoute: typeof AuthenticatedAiAdvisorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -189,6 +208,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAiAdvisorRoute: typeof AuthenticatedAiAdvisorRoute
   AuthenticatedCollegeChancesRoute: typeof AuthenticatedCollegeChancesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
@@ -196,6 +216,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAiAdvisorRoute: AuthenticatedAiAdvisorRoute,
   AuthenticatedCollegeChancesRoute: AuthenticatedCollegeChancesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
