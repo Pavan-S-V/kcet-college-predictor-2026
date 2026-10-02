@@ -82,3 +82,72 @@ export const syncAllUsers = createServerFn({ method: "POST" })
     }
     return { synced: users.length, logins: loginCount };
   });
+
+// Admin only: compare app data with the external tables.
+export const verifyExternalSync = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { fetchAll } = await import("./ext-sync.server");
+    const users: any[] = [];
+    for (let page = 1; page < 50; page++) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) throw new Error("Could not load users");
+      users.push(...data.users);
+      if (data.users.length < 1000) break;
+    }
+    const { data: preds } = await supabaseAdmin.from("predictions").select("user_id").limit(100000);
+    const appPred = new Map<string, number>();
+    for (const p of preds ?? []) appPred.set(p.user_id, (appPred.get(p.user_id) ?? 0) + 1);
+    const { data: appLogins } = await supabaseAdmin.from("login_activity").select("user_id").limit(100000);
+    const appLogin = new Map<string, number>();
+    for (const l of appLogins ?? []) appLogin.set(l.user_id, (appLogin.get(l.user_id) ?? 0) + 1);
+
+    const ext = await fetchAll<{ external_user_id: string; email: string | null; prediction_count: number }>(
+      "user_analytics?select=external_user_id,email,prediction_count");
+    const extLogins = await fetchAll<{ external_user_id: string; logged_in_at: string }>(
+      "login_activity?select=external_user_id,logged_in_at");
+
+    const extById = new Map<string, typeof ext>();
+    for (const r of ext) extById.set(r.external_user_id, [...(extById.get(r.external_user_id) ?? []), r]);
+    const appIds = new Set(users.map((u) => u.id));
+    const emailOf = new Map(users.map((u) => [u.id, u.email ?? ""]));
+
+    const missingUsers = users.filter((u) => !extById.has(u.id)).map((u) => ({ id: u.id, email: u.email ?? "" }));
+    const duplicateUsers = [...extById].filter(([, rs]) => rs.length > 1).map(([id, rs]) => ({ id, email: rs[0].email ?? "", count: rs.length }));
+    const orphanUsers = [...extById.keys()].filter((id) => !appIds.has(id)).map((id) => ({ id, email: extById.get(id)![0].email ?? "" }));
+    const predictionMismatches = users.flatMap((u) => {
+      const e = extById.get(u.id)?.[0];
+      const a = appPred.get(u.id) ?? 0;
+      return e && e.prediction_count !== a ? [{ id: u.id, email: u.email ?? "", app: a, external: e.prediction_count }] : [];
+    });
+
+    const extLoginCount = new Map<string, number>();
+    const seen = new Map<string, number>();
+    for (const l of extLogins) {
+      extLoginCount.set(l.external_user_id, (extLoginCount.get(l.external_user_id) ?? 0) + 1);
+      const k = `${l.external_user_id}|${l.logged_in_at}`;
+      seen.set(k, (seen.get(k) ?? 0) + 1);
+    }
+    const duplicateLogins = [...seen].filter(([, c]) => c > 1).map(([k, c]) => {
+      const [id, at] = k.split("|");
+      return { id, email: emailOf.get(id) ?? "", at, count: c };
+    });
+    const loginMismatches = [...new Set([...appLogin.keys(), ...extLoginCount.keys()])].flatMap((id) => {
+      const a = appLogin.get(id) ?? 0, e = extLoginCount.get(id) ?? 0;
+      return a !== e ? [{ id, email: emailOf.get(id) ?? "", app: a, external: e }] : [];
+    });
+
+    return {
+      checkedAt: new Date().toISOString(),
+      totals: {
+        appUsers: users.length, extUsers: ext.length,
+        appLogins: appLogins?.length ?? 0, extLogins: extLogins.length,
+        appPredictions: preds?.length ?? 0,
+        extPredictions: ext.reduce((s, r) => s + (r.prediction_count ?? 0), 0),
+      },
+      missingUsers, duplicateUsers, orphanUsers, predictionMismatches, duplicateLogins, loginMismatches,
+    };
+  });

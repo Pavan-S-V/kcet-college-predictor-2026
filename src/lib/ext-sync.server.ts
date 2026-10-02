@@ -41,3 +41,18 @@ export async function insertLogins(rows: { external_user_id: string; email: stri
 export async function logLogin(external_user_id: string, email: string | null, provider: string | null) {
   await post("login_activity", [{ external_user_id, email, login_provider: provider }], "return=minimal");
 }
+
+export async function fetchAll<T>(path: string): Promise<T[]> {
+  const { url, key } = cfg();
+  const headers: Record<string, string> = { apikey: key };
+  if (!key.startsWith("sb_")) headers.Authorization = `Bearer ${key}`;
+  const out: T[] = [];
+  for (let from = 0; from < 200000; from += 1000) {
+    const res = await fetch(`${url}/rest/v1/${path}`, { headers: { ...headers, Range: `${from}-${from + 999}` } });
+    if (!res.ok) throw new Error(`External read failed [${res.status}]: ${await res.text()}`);
+    const rows = (await res.json()) as T[];
+    out.push(...rows);
+    if (rows.length < 1000) break;
+  }
+  return out;
+}
